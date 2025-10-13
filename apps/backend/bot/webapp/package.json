@@ -1,0 +1,32 @@
+{
+  "name": "@uzinex/boost-webapp",
+  "version": "1.0.0",
+  "description": "Uzinex Boost Telegram WebApp front-end packaged for Vite development and production builds.",
+  "type": "module",
+  "author": "Uzinex Engineering",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uzinex/boost"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "eslint-plugin-html": "^8.1.2",
+    "prettier": "^3.3.3",
+    "vite": "^5.4.7"
+  }
+}
