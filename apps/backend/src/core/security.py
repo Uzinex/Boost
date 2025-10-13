@@ -21,9 +21,12 @@ from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Dict
 
 import jwt  # PyJWT
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 
 from core.config import settings
+from db.repositories.user_repository import UserRepository
+from db.base import async_session_factory
 
 logger = logging.getLogger("uzinex.core.security")
 
@@ -33,10 +36,7 @@ logger = logging.getLogger("uzinex.core.security")
 # -------------------------------------------------
 
 def create_session_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Создаёт JWT токен для сессии пользователя.
-    Используется при входе через Telegram WebApp.
-    """
+    """Создаёт JWT токен для сессии пользователя."""
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire, "iat": datetime.utcnow()})
@@ -47,10 +47,7 @@ def create_session_token(data: dict, expires_delta: Optional[timedelta] = None) 
 
 
 def decode_session_token(token: str) -> dict:
-    """
-    Проверяет и декодирует JWT токен.
-    Бросает HTTPException при ошибке валидации.
-    """
+    """Проверяет и декодирует JWT токен."""
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         return payload
@@ -65,21 +62,13 @@ def decode_session_token(token: str) -> dict:
 # -------------------------------------------------
 
 def validate_telegram_init_data(init_data: str, bot_token: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Проверяет подлинность initData, полученного из Telegram WebApp.
-    Возвращает данные пользователя при успешной валидации.
-
-    Формат initData:
-        query_id=AAE123xyz&user={"id":123,"username":"feruz"}&hash=abc123
-    """
-
+    """Проверяет подлинность initData, полученного из Telegram WebApp."""
     if not init_data:
         raise HTTPException(status_code=400, detail="Missing init_data")
 
     bot_token = bot_token or settings.TELEGRAM_BOT_TOKEN
     secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
 
-    # Разбираем строку initData
     data_check = []
     data_dict = {}
     for item in init_data.split("&"):
@@ -131,10 +120,7 @@ def generate_secure_token(length: int = 32) -> str:
 # -------------------------------------------------
 
 def build_user_payload(user_id: int, username: Optional[str] = None) -> dict:
-    """
-    Создаёт стандартный payload для JWT токена.
-    Используется при WebApp авторизации.
-    """
+    """Создаёт стандартный payload для JWT токена."""
     payload = {"sub": str(user_id)}
     if username:
         payload["username"] = username
@@ -142,8 +128,7 @@ def build_user_payload(user_id: int, username: Optional[str] = None) -> dict:
 
 
 def create_user_session(user: Mapping[str, Any] | Any, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a session token for a given user object or mapping."""
-
+    """Создаёт JWT для пользователя (объект или dict)."""
     if isinstance(user, Mapping):
         user_id = user.get("id") or user.get("sub")
         username = user.get("username")
@@ -156,3 +141,28 @@ def create_user_session(user: Mapping[str, Any] | Any, expires_delta: Optional[t
 
     payload = build_user_payload(int(user_id), username=username)
     return create_session_token(payload, expires_delta)
+
+
+# -------------------------------------------------
+# 🔹 Dependency: get_current_user
+# -------------------------------------------------
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    """Возвращает текущего пользователя из JWT токена."""
+    try:
+        payload = decode_session_token(token)
+        user_id = int(payload.get("sub"))
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+    async with async_session_factory() as session:
+        repo = UserRepository(session)
+        user = await repo.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(status_code=401, detail="User not found")
+
+    return user
