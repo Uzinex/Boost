@@ -26,13 +26,6 @@ class ManualDepositState(StatesGroup):
     waiting_for_receipt = State()
 
 
-def _get_api_client(message: Message | CallbackQuery) -> BoostAPIClient:
-    api_client = message.bot.get("api_client") if isinstance(message, Message) else message.message.bot.get("api_client")
-    if not isinstance(api_client, BoostAPIClient):
-        raise RuntimeError("BoostAPIClient is not configured")
-    return api_client
-
-
 @router.callback_query(F.data == "payments:deposit")
 async def cb_deposit(callback: CallbackQuery, state: FSMContext) -> None:
     """Initiate manual deposit request flow."""
@@ -81,7 +74,11 @@ async def process_amount(message: Message, state: FSMContext) -> None:
 
 
 @router.message(ManualDepositState.waiting_for_receipt)
-async def process_receipt(message: Message, state: FSMContext) -> None:
+async def process_receipt(
+    message: Message,
+    state: FSMContext,
+    api_client: BoostAPIClient,
+) -> None:
     """Finalize manual deposit request by sending data to backend."""
 
     if not message.photo:
@@ -102,8 +99,6 @@ async def process_receipt(message: Message, state: FSMContext) -> None:
         return
 
     receipt_file_id = message.photo[-1].file_id
-    api_client = _get_api_client(message)
-
     try:
         response = await api_client.submit_manual_deposit(
             telegram_id=user.id,
@@ -133,11 +128,10 @@ async def process_receipt(message: Message, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data == "payments:rates")
-async def cb_rates(callback: CallbackQuery) -> None:
+async def cb_rates(callback: CallbackQuery, api_client: BoostAPIClient) -> None:
     """Provide current exchange rates."""
 
     await callback.answer()
-    api_client = _get_api_client(callback)
     try:
         rates = await api_client.fetch_exchange_rates()
     except APIClientError as exc:
