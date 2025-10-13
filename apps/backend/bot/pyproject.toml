@@ -1,0 +1,109 @@
+# ============================================================
+# Uzinex Boost v2.0 — Telegram Bot Integration (pyproject.toml)
+# ============================================================
+# Poetry configuration for the bot integration package that
+# bundles reusable services powering the Telegram automation
+# layer of the Boost backend.
+# ------------------------------------------------------------
+# Python: 3.11+
+# Author: Feruz Dilov (Nexar Voltrex)
+# ============================================================
+
+[tool.poetry]
+name = "uzinex-bot"
+version = "1.0.0"
+description = "Telegram bot orchestration layer for the Uzinex Boost backend."
+license = "MIT"
+readme = "app/README.md"
+homepage = "https://uzinex.uz"
+repository = "https://github.com/uzinex/boost-backend"
+authors = ["Feruz Dilov <founder@uzinex.uz>"]
+keywords = ["uzinex", "telegram", "bot", "fastapi", "asyncio", "sqlalchemy"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP :: Session",
+    "Topic :: Software Development :: Libraries",
+]
+packages = [{ include = "bot" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.0"
+sqlalchemy = "^2.0.36"
+asyncpg = "^0.29.0"
+httpx = { version = "^0.27.2", extras = ["http2"] }
+pydantic = "^2.8.2"
+pydantic-settings = "^2.2.1"
+loguru = "^0.7.2"
+python-dotenv = "^1.0.1"
+pyjwt = "^2.9.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+mypy = "^1.12.1"
+ruff = "^0.6.9"
+pytest = "^8.3.2"
+pytest-asyncio = "^0.23.8"
+coverage = "^7.6.4"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = "\\.(py|pyi)$"
+exclude = """
+/(
+    \\.venv
+  | build
+  | dist
+  | __pycache__
+  | migrations
+)/
+"""
+
+[tool.ruff]
+line-length = 100
+src = ["bot"]
+exclude = ["migrations", "tests/__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "Q", "UP"]
+ignore = ["E203", "E501"]
+fix = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+strict_optional = true
+ignore_missing_imports = true
+packages = ["bot"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--strict-markers --disable-warnings"
+
+[tool.coverage.run]
+branch = true
+source = ["bot"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
