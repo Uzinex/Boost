@@ -89,3 +89,12 @@ class ReferralLevelUpEvent(DomainEvent):
     new_level: int = Field(..., description="Новый уровень в реферальной системе")
     bonus_amount: float = Field(default=0.0, description="Бонус за повышение уровня, если есть")
     achieved_at: datetime = Field(default_factory=datetime.utcnow)
+
+# -------------------------------------------------
+# 🔹 Алиас для совместимости со старыми сервисами
+# -------------------------------------------------
+class ReferralBonusGrantedEvent(ReferralRewardedEvent):
+    """Событие-синоним для обратной совместимости (referral.rewarded)."""
+
+    event_type: str = "referral.bonus_granted"
+
