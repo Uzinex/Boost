@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from core.config import settings
+from core.database import engine
 from core.startup import init_app
 from core.logging import setup_logging
 from db.base import Base
@@ -80,7 +81,8 @@ async def on_startup():
     Подключает базу данных и инициализирует ключевые модули.
     """
     logger.info("🔧 Initializing Uzinex Boost backend components...")
-    await Base.metadata.create_all(bind=Base.engine)
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
     await init_app()
     logger.success("✅ Application startup completed.")
 
@@ -107,5 +109,5 @@ async def root():
         "status": "ok",
         "service": "Uzinex Boost Backend",
         "version": "2.0.0",
-        "environment": settings.ENVIRONMENT,
+        "environment": settings.APP_ENV,
     }

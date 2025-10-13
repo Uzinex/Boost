@@ -18,14 +18,7 @@ Uzinex Boost — Database Base Configuration
 """
 
 from __future__ import annotations
-from sqlalchemy.orm import DeclarativeBase
-
-# -------------------------------------------------
-# 🔹 Базовый класс для всех ORM-моделей
-# -------------------------------------------------
-class Base(DeclarativeBase):
-    """Общий базовый класс для всех SQLAlchemy моделей."""
-    pass
+from core.database import Base
 
 
 # -------------------------------------------------
