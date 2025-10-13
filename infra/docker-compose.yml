@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: boost-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-boost}
+      POSTGRES_USER: ${POSTGRES_USER:-boost}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-boost}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-boost}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: boost-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/docker/backend.Dockerfile
+    container_name: boost-backend
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-boost}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-boost}
+      DB_NAME: ${POSTGRES_DB:-boost}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379/0
+      BACKEND_HOST: 0.0.0.0
+      BACKEND_PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../apps/backend:/app/apps/backend:ro
+      - ../.env:/app/.env:ro
+
+  bot:
+    build:
+      context: ..
+      dockerfile: infra/docker/bot.Dockerfile
+    container_name: boost-bot
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      BOOST_BACKEND_URL: http://backend:8000/api/v1
+    depends_on:
+      backend:
+        condition: service_started
+    volumes:
+      - ../apps/bot:/app/apps/bot:ro
+      - ../.env:/app/.env:ro
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: boost-nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${NGINX_HOST_PORT:-8080}:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

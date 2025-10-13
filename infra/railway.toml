@@ -1,0 +1,49 @@
+# ============================================================
+# Railway deployment configuration for Uzinex Boost
+# ============================================================
+# Defines two primary services:
+#   - backend (FastAPI)
+#   - bot (Aiogram worker)
+# Along with shared Postgres and Redis plugins.
+# ============================================================
+
+[project]
+name = "uzinex-boost"
+
+[plugins]
+postgresql = { name = "boost-db" }
+redis = { name = "boost-redis" }
+
+[[services]]
+name = "backend"
+source = "../apps/backend"
+start = "uvicorn apps.backend.src.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+env = "production"
+
+  [services.env]
+  APP_ENV = "production"
+  BACKEND_HOST = "0.0.0.0"
+  BACKEND_PORT = "${PORT}"
+  DATABASE_URL = "${{postgresql.DATABASE_URL}}"
+  REDIS_URL = "${{redis.REDIS_URL}}"
+  TELEGRAM_BOT_TOKEN = "${{TELEGRAM_BOT_TOKEN}}"
+  SECRET_KEY = "${{SECRET_KEY}}"
+
+[[services]]
+name = "bot"
+source = "../apps/bot"
+start = "python apps/bot/app/main.py"
+env = "production"
+
+  [services.env]
+  BOOST_BACKEND_URL = "${{services.backend.url}}/api/v1"
+  BOOST_BOT_TOKEN = "${{TELEGRAM_BOT_TOKEN}}"
+  BOOST_BOT_BACKEND_TOKEN = "${{BOT_BACKEND_TOKEN}}"
+  BOOST_BOT_DEFAULT_LANG = "ru"
+  BOOST_BOT_TIMEOUT = "10.0"
+
+[variables]
+# Provide sensitive values using Railway secrets UI or CLI
+TELEGRAM_BOT_TOKEN = ""
+SECRET_KEY = ""
+BOT_BACKEND_TOKEN = ""
