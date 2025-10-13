@@ -6,9 +6,10 @@ import logging
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, Message
 
 from ..service.api import APIClientError, BoostAPIClient
+from ..keyboards import main_menu_keyboard
 
 
 logger = logging.getLogger("boost.bot.handlers.start")
@@ -21,20 +22,6 @@ def _get_api_client(message: Message | CallbackQuery) -> BoostAPIClient:
     if not isinstance(api_client, BoostAPIClient):
         raise RuntimeError("BoostAPIClient is not configured for the bot instance")
     return api_client
-
-
-def _main_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="➕ Пополнить баланс", callback_data="payments:deposit")],
-            [
-                InlineKeyboardButton(text="💰 Мой баланс", callback_data="balance:show"),
-                InlineKeyboardButton(text="📈 Статистика", callback_data="start:stats"),
-            ],
-            [InlineKeyboardButton(text="💱 Курсы", callback_data="payments:rates")],
-            [InlineKeyboardButton(text="ℹ️ Поддержка", callback_data="start:help")],
-        ]
-    )
 
 
 @router.message(CommandStart())
@@ -80,7 +67,7 @@ async def cmd_start(message: Message, command: CommandObject | None = None) -> N
     if referral:
         greeting.append("\n🔗 Спасибо, что пришли по пригласительной ссылке! Код учтён.")
 
-    await message.answer("\n".join(greeting), reply_markup=_main_menu())
+    await message.answer("\n".join(greeting), reply_markup=main_menu_keyboard())
 
 
 @router.message(Command("help"))
@@ -93,7 +80,7 @@ async def cmd_help(message: Message) -> None:
         "• Для вопросов обращайтесь в службу поддержки: @boost_support.\n"
         "• Пополнения обрабатываются администраторами в течение 5–15 минут."
     )
-    await message.answer(help_text, reply_markup=_main_menu())
+    await message.answer(help_text, reply_markup=main_menu_keyboard())
 
 
 @router.callback_query(F.data == "start:help")
