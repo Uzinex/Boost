@@ -17,7 +17,7 @@ Uzinex Boost — ORM Models Loader
 """
 
 # Импорт базового класса SQLAlchemy
-from core.database import Base
+from db.base import Base
 
 # Импорт всех моделей вручную (чтобы Alembic увидел их при autogenerate)
 from db.models.user_model import User
