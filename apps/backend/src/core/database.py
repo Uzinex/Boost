@@ -4,11 +4,6 @@ Uzinex Boost — Database Configuration (Railway Edition)
 
 Настройка асинхронного подключения к PostgreSQL через SQLAlchemy + asyncpg.
 Поддерживает SSL (Railway proxy требует защищённое соединение).
-
-Используется во всех модулях backend-системы:
-- core.deps
-- domain.services.*
-- db.migrations (через Alembic)
 """
 
 from __future__ import annotations
@@ -16,6 +11,7 @@ from __future__ import annotations
 import ssl
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import text
 from core.config import settings
 
 
@@ -31,16 +27,16 @@ ssl_context.verify_mode = ssl.CERT_NONE
 # 🔹 Создание асинхронного движка SQLAlchemy
 # -------------------------------------------------
 engine = create_async_engine(
-    settings.DATABASE_URL,           # пример: postgresql+asyncpg://user:pass@host:port/db
-    echo=False,                      # отключаем SQL-логи в продакшене
+    settings.DATABASE_URL,
+    echo=False,
     future=True,
-    pool_pre_ping=True,              # проверка соединения перед использованием
-    connect_args={"ssl": ssl_context}  # Railway требует SSL
+    pool_pre_ping=True,
+    connect_args={"ssl": ssl_context},  # Railway требует SSL
 )
 
 
 # -------------------------------------------------
-# 🔹 SessionMaker (асинхронный)
+# 🔹 Сессия и базовый класс
 # -------------------------------------------------
 AsyncSessionLocal = sessionmaker(
     bind=engine,
@@ -48,10 +44,6 @@ AsyncSessionLocal = sessionmaker(
     expire_on_commit=False,
 )
 
-
-# -------------------------------------------------
-# 🔹 Базовый класс моделей
-# -------------------------------------------------
 Base = declarative_base()
 
 
@@ -64,3 +56,21 @@ async def get_session() -> AsyncSession:
     """
     async with AsyncSessionLocal() as session:
         yield session
+
+
+# -------------------------------------------------
+# 🔹 Проверка соединения с базой данных
+# -------------------------------------------------
+async def test_database_connection() -> bool:
+    """
+    Тестирует соединение с базой данных при старте приложения.
+    Возвращает True, если соединение установлено успешно.
+    """
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True
+    except Exception as e:
+        import logging
+        logging.error(f"❌ Database connection test failed: {e}")
+        return False
