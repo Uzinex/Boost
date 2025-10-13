@@ -98,3 +98,4 @@ class ReferralBonusGrantedEvent(ReferralRewardedEvent):
 
     event_type: str = "referral.bonus_granted"
 
+
