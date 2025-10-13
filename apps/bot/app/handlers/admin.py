@@ -9,6 +9,7 @@ from aiogram import Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
+from ..config import BotSettings
 from ..service.api import APIClientError, BoostAPIClient
 
 
@@ -17,23 +18,13 @@ logger = logging.getLogger("boost.bot.handlers.admin")
 router = Router(name="admin")
 
 
-def _get_api_client(message: Message) -> BoostAPIClient:
-    api_client = message.bot.get("api_client")
-    if not isinstance(api_client, BoostAPIClient):
-        raise RuntimeError("BoostAPIClient is not configured")
-    return api_client
-
-
-def _is_admin(message: Message) -> bool:
-    settings = message.bot.get("settings")
-    if not settings:
-        return False
+def _is_admin(message: Message, settings: BotSettings) -> bool:
     admin_ids: Iterable[int] = getattr(settings, "admin_ids", [])
     return bool(message.from_user) and message.from_user.id in set(admin_ids)
 
 
-async def _ensure_admin(message: Message) -> bool:
-    if not _is_admin(message):
+async def _ensure_admin(message: Message, settings: BotSettings) -> bool:
+    if not _is_admin(message, settings):
         await message.answer("❌ Команда доступна только администраторам.")
         logger.warning("Unauthorized admin command from %s", message.from_user.id if message.from_user else "unknown")
         return False
@@ -41,10 +32,10 @@ async def _ensure_admin(message: Message) -> bool:
 
 
 @router.message(Command("admin"))
-async def admin_menu(message: Message) -> None:
+async def admin_menu(message: Message, settings: BotSettings) -> None:
     """Display available admin commands."""
 
-    if not await _ensure_admin(message):
+    if not await _ensure_admin(message, settings):
         return
 
     text = (
@@ -58,13 +49,15 @@ async def admin_menu(message: Message) -> None:
 
 
 @router.message(Command("admin_stats"))
-async def admin_stats(message: Message) -> None:
+async def admin_stats(
+    message: Message,
+    settings: BotSettings,
+    api_client: BoostAPIClient,
+) -> None:
     """Fetch and display system-level statistics."""
 
-    if not await _ensure_admin(message):
+    if not await _ensure_admin(message, settings):
         return
-
-    api_client = _get_api_client(message)
     try:
         stats = await api_client.fetch_system_stats()
     except APIClientError as exc:
@@ -89,13 +82,15 @@ async def admin_stats(message: Message) -> None:
 
 
 @router.message(Command("admin_health"))
-async def admin_health(message: Message) -> None:
+async def admin_health(
+    message: Message,
+    settings: BotSettings,
+    api_client: BoostAPIClient,
+) -> None:
     """Run backend health check via API."""
 
-    if not await _ensure_admin(message):
+    if not await _ensure_admin(message, settings):
         return
-
-    api_client = _get_api_client(message)
     try:
         health = await api_client.health()
     except APIClientError as exc:
@@ -113,10 +108,15 @@ async def admin_health(message: Message) -> None:
 
 
 @router.message(Command("notify"))
-async def notify_user(message: Message, command: CommandObject) -> None:
+async def notify_user(
+    message: Message,
+    command: CommandObject,
+    settings: BotSettings,
+    api_client: BoostAPIClient,
+) -> None:
     """Forward custom notification to a specific user."""
 
-    if not await _ensure_admin(message):
+    if not await _ensure_admin(message, settings):
         return
 
     if not command.args:
@@ -139,7 +139,6 @@ async def notify_user(message: Message, command: CommandObject) -> None:
         await message.answer("Текст сообщения не может быть пустым.")
         return
 
-    api_client = _get_api_client(message)
     try:
         await api_client.send_notification(user_id=user_id, text=text)
     except APIClientError as exc:

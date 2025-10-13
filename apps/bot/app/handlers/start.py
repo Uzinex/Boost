@@ -1,5 +1,4 @@
 """Handlers for common user commands (/start, /help)."""
-
 from __future__ import annotations
 
 import logging
@@ -17,18 +16,14 @@ logger = logging.getLogger("boost.bot.handlers.start")
 router = Router(name="common")
 
 
-def _get_api_client(message: Message | CallbackQuery) -> BoostAPIClient:
-    api_client = message.bot.get("api_client") if isinstance(message, Message) else message.message.bot.get("api_client")
-    if not isinstance(api_client, BoostAPIClient):
-        raise RuntimeError("BoostAPIClient is not configured for the bot instance")
-    return api_client
-
-
 @router.message(CommandStart())
-async def cmd_start(message: Message, command: CommandObject | None = None) -> None:
+async def cmd_start(
+    message: Message,
+    api_client: BoostAPIClient,
+    command: CommandObject | None = None,
+) -> None:
     """Greet the user and show the main menu."""
 
-    api_client = _get_api_client(message)
     user = message.from_user
     referral = command.args if command else None
 
@@ -92,11 +87,10 @@ async def cb_help(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data == "start:stats")
-async def cb_stats(callback: CallbackQuery) -> None:
+async def cb_stats(callback: CallbackQuery, api_client: BoostAPIClient) -> None:
     """Send fresh stats on demand."""
 
     await callback.answer()
-    api_client = _get_api_client(callback)
     try:
         stats = await api_client.fetch_public_stats()
     except APIClientError as exc:
@@ -121,11 +115,10 @@ async def cb_stats(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data == "balance:show")
-async def cb_balance(callback: CallbackQuery) -> None:
+async def cb_balance(callback: CallbackQuery, api_client: BoostAPIClient) -> None:
     """Show current balance fetched from backend."""
 
     await callback.answer()
-    api_client = _get_api_client(callback)
     user = callback.from_user
     if not user:
         await callback.message.answer("Не удалось определить пользователя.")

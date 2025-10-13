@@ -1,7 +1,6 @@
 """Entry point for running the Boost Telegram bot."""
 
 from __future__ import annotations
-
 import asyncio
 import logging
 
@@ -10,6 +9,7 @@ from aiogram.enums import ParseMode
 
 from .config import settings
 from .handlers import admin, payments, start
+from .middlewares import DependencyInjectionMiddleware, LoggingMiddleware
 from .service.api import BoostAPIClient
 
 
@@ -38,8 +38,10 @@ async def main() -> None:
     dispatcher.include_router(payments.router)
     dispatcher.include_router(admin.router)
 
-    bot["settings"] = settings
-    bot["api_client"] = api_client
+    dispatcher.update.middleware(LoggingMiddleware())
+    dispatcher.update.middleware(
+        DependencyInjectionMiddleware(settings=settings, api_client=api_client)
+    )
 
     logger.info("Boost bot is starting...")
 
