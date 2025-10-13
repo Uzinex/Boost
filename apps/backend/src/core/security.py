@@ -26,7 +26,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 from core.config import settings
 from db.repositories.user_repository import UserRepository
-from db.base import async_session_factory
+from core.database import async_session_factory, engine
 
 logger = logging.getLogger("uzinex.core.security")
 
