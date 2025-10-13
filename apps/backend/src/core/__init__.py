@@ -17,10 +17,9 @@ Uzinex Boost — Core Package
 
 from __future__ import annotations
 
-import logging
-
+import logging as py_logging  # ✅ используем стандартное logging под другим именем
 from .config import settings  # глобальная конфигурация приложения
-from .logging import setup_logging
+from .logging import setup_logging  # кастомная настройка loguru / форматирование
 
 __all__ = ["settings", "setup_logging", "__version__", "get_logger"]
 
@@ -37,19 +36,18 @@ __description__ = (
     "для продвижения и заработка с использованием FastAPI + Aiogram."
 )
 
-
 # -------------------------------------------------
-# 🔹 Логирование при инициализации
+# 🔹 Инициализация логирования
 # -------------------------------------------------
 
-def get_logger(name: str = "uzinex.core") -> logging.Logger:
+def get_logger(name: str = "uzinex.core") -> py_logging.Logger:
     """
     Возвращает преднастроенный логгер для модуля.
     Пример:
         logger = get_logger(__name__)
     """
     setup_logging()
-    return logging.getLogger(name)
+    return py_logging.getLogger(name)
 
 
 # Инициализация базового логгера при импорте ядра
