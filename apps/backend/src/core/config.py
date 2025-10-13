@@ -15,6 +15,7 @@ Uzinex Boost Core — Configuration
 
 from __future__ import annotations
 
+import os
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from functools import lru_cache
@@ -23,7 +24,6 @@ from functools import lru_cache
 # -------------------------------------------------
 # 🔹 Settings class
 # -------------------------------------------------
-
 class Settings(BaseSettings):
     """
     Глобальные настройки приложения, доступные через `from core import settings`.
@@ -34,9 +34,11 @@ class Settings(BaseSettings):
     APP_VERSION: str = Field("2.0.0", description="Версия API")
     APP_ENV: str = Field("production", description="Окружение: development | staging | production")
     API_V1_PREFIX: str = Field("/api/v1", description="Префикс всех REST эндпоинтов")
-    CORS_ORIGINS: list[str] = Field(
-        default_factory=lambda: ["*"], description="Разрешённые источники для CORS"
-    )
+    CORS_ORIGINS: list[str] = Field(default_factory=lambda: ["*"], description="Разрешённые источники для CORS")
+
+    # --- 🧠 Debug / Logging ---
+    DEBUG: bool = Field(default_factory=lambda: os.getenv("APP_ENV", "production") != "production")
+    LOG_LEVEL: str = Field("INFO", description="Уровень логирования")
 
     # --- 🌐 URLs ---
     BASE_DOMAIN: str = Field("https://boost.uzinex.com", description="Основной домен WebApp")
@@ -44,9 +46,7 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = Field("https://boost.uzinex.com", description="Фронтенд (WebApp) URL")
 
     # --- 🗄 Database ---
-    DATABASE_URL: str | None = Field(
-        None, description="Полный URL подключения к PostgreSQL (если задан)"
-    )
+    DATABASE_URL: str | None = Field(None, description="Полный URL подключения к PostgreSQL (если задан)")
     DB_HOST: str = Field("localhost", description="Хост PostgreSQL")
     DB_PORT: int = Field(5432, description="Порт PostgreSQL")
     DB_USER: str = Field("postgres", description="Имя пользователя базы данных")
@@ -68,14 +68,13 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = Field("YOUR_TELEGRAM_BOT_TOKEN", description="Токен Telegram бота")
     TELEGRAM_WEBHOOK_URL: str | None = Field(None, description="Webhook URL для Telegram API")
 
-    # --- 💰 Currency / Business Logic ---
+    # --- 💰 Business Logic ---
     UZT_TO_SUM_RATE: float = Field(75.0, description="Курс конвертации 1 UZT в сум")
     START_BONUS: float = Field(100.0, description="Бонус при регистрации (UZT)")
     REWARD_CHANNEL: float = Field(0.6, description="Вознаграждение за подписку на канал")
     REWARD_GROUP: float = Field(0.4, description="Вознаграждение за вступление в группу")
 
-    # --- 🧠 Misc / System ---
-    LOG_LEVEL: str = Field("INFO", description="Уровень логирования")
+    # --- 🧩 Misc ---
     RAILWAY_MODE: bool = Field(False, description="Флаг запуска в Railway")
     TELEGRAM_DEBUG_MODE: bool = Field(False, description="Режим отладки Telegram")
     TIMEZONE: str = Field("Asia/Tashkent", description="Часовой пояс сервера")
@@ -89,7 +88,6 @@ class Settings(BaseSettings):
 # -------------------------------------------------
 # 🔹 Cached instance
 # -------------------------------------------------
-
 @lru_cache()
 def get_settings() -> Settings:
     """Создаёт и кэширует объект настроек (singleton)."""
@@ -97,15 +95,14 @@ def get_settings() -> Settings:
 
 
 # -------------------------------------------------
-# 🔹 Удобный алиас для глобального доступа
+# 🔹 Global instance
 # -------------------------------------------------
-
 settings = get_settings()
+
 
 # -------------------------------------------------
 # 🔹 Derived / Computed properties
 # -------------------------------------------------
-
 # Формируем URL подключения к PostgreSQL
 database_url = settings.DATABASE_URL or (
     f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}"
