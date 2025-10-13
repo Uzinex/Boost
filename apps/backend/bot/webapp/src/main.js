@@ -11,8 +11,8 @@ import {
   setOrders,
   setPayments,
   setReferrals,
-} from './state.js';
-import { api, authWithTelegram, setAuthToken } from './api.js';
+} from '@/state.js';
+import { api, authWithTelegram, setAuthToken } from '@/api.js';
 import {
   switchView,
   updateUserChip,
@@ -27,7 +27,7 @@ import {
   showToast,
   applyThemeFromTelegram,
   setLoading,
-} from './ui.js';
+} from '@/ui.js';
 
 const tg = window.Telegram?.WebApp;
 

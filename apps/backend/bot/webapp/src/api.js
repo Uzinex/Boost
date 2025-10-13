@@ -1,4 +1,4 @@
-import { getConfig } from './state.js';
+import { getConfig } from '@/state.js';
 
 let authToken = null;
 
@@ -94,7 +94,14 @@ export async function apiRequest(path, options = {}) {
     }
   }
 
-  const response = await fetch(url.toString(), requestInit);
+  let response;
+  try {
+    response = await fetch(url.toString(), requestInit);
+  } catch (error) {
+    console.error('[Boost] API network error', error);
+    throw new Error('Сеть недоступна. Проверьте подключение к интернету.');
+  }
+
   const payload = await parseJson(response);
 
   if (!response.ok) {
