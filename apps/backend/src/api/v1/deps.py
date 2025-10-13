@@ -17,6 +17,8 @@ import logging
 from fastapi import Depends, HTTPException, status
 from typing import AsyncGenerator, Any
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.database import get_async_session
 from core.security import decode_session_token
 from domain.services import (
@@ -29,6 +31,7 @@ from domain.services import (
 )
 from adapters.cache.redis_cache import RedisCache
 from adapters.telegram.client import TelegramClient
+from bot.app.service import BotService
 
 logger = logging.getLogger("uzinex.api.deps")
 
@@ -130,3 +133,12 @@ def get_payment_service() -> PaymentService:
 def get_health_service() -> HealthService:
     """Возвращает экземпляр HealthService (для /system/health)."""
     return HealthService()
+
+
+def get_bot_service(
+    session: AsyncSession = Depends(get_db_session),
+    telegram_client: TelegramClient = Depends(get_telegram_client),
+) -> BotService:
+    """Возвращает сервисный слой для интеграции Telegram-бота."""
+
+    return BotService(session=session, telegram_client=telegram_client)
