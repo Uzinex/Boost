@@ -9,12 +9,6 @@ Uzinex Boost — Database Base Configuration
 - централизует импорт моделей для автоматической регистрации в metadata;
 - используется Alembic (env.py) при миграциях;
 - облегчает доступ к моделям из других модулей.
-
-Используется в:
-- db.database (инициализация движка и сессии)
-- db.migrations.env.py
-- domain.services.*
-- db.repositories.*
 """
 
 from __future__ import annotations
@@ -56,7 +50,7 @@ metadata = Base.metadata
 try:
     engine = create_async_engine(
         settings.DATABASE_URL,
-        echo=settings.DEBUG,
+        echo=settings.DEBUG,  # лог SQL только при DEBUG=True
         future=True,
         pool_pre_ping=True,
     )
@@ -67,7 +61,7 @@ try:
         class_=AsyncSession,
     )
 
-    logger.info("✅ Database engine and session factory initialized successfully.")
+    logger.info(f"✅ Database engine initialized ({settings.APP_ENV}, echo={settings.DEBUG})")
 
 except Exception as e:
     logger.error(f"❌ Failed to initialize async database engine: {e}")
