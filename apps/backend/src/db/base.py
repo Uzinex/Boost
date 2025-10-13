@@ -18,6 +18,7 @@ Uzinex Boost — Database Base Configuration
 """
 
 from __future__ import annotations
+
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import declarative_base
@@ -45,24 +46,30 @@ from db.models import (
 # from db.models import transaction_model  # добавится позже при необходимости
 
 # -------------------------------------------------
-# 🔹 Экспорт metadata
+# 🔹 Экспорт metadata (используется Alembic)
 # -------------------------------------------------
 metadata = Base.metadata
 
 # -------------------------------------------------
 # 🔹 Асинхронный движок и фабрика сессий
 # -------------------------------------------------
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    future=True,
-    pool_pre_ping=True,
-)
+try:
+    engine = create_async_engine(
+        settings.DATABASE_URL,
+        echo=settings.DEBUG,
+        future=True,
+        pool_pre_ping=True,
+    )
 
-async_session_factory = async_sessionmaker(
-    bind=engine,
-    expire_on_commit=False,
-    class_=AsyncSession,
-)
+    async_session_factory = async_sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+        class_=AsyncSession,
+    )
 
-logger.info("✅ Database base module initialized (engine + session factory ready)")
+    logger.info("✅ Database engine and session factory initialized successfully.")
+
+except Exception as e:
+    logger.error(f"❌ Failed to initialize async database engine: {e}")
+    engine = None
+    async_session_factory = None
