@@ -47,6 +47,14 @@ class UserRepository(BaseRepository[User]):
         )
         return result.scalar_one_or_none()
 
+    async def get_by_telegram_id(self, telegram_id: int) -> Optional[User]:
+        """Возвращает пользователя по Telegram ID."""
+
+        result = await self.session.execute(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        return result.scalar_one_or_none()
+
     async def get_by_email(self, email: str) -> Optional[User]:
         """
         Возвращает пользователя по email.
@@ -195,6 +203,62 @@ class UserRepository(BaseRepository[User]):
             "active": int(active or 0),
             "verified": int(verified or 0),
         }
+
+    # -------------------------------------------------
+    # 🔹 Обновление данных из Telegram
+    # -------------------------------------------------
+    async def upsert_from_telegram(
+        self,
+        telegram_id: int,
+        *,
+        username: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        language_code: Optional[str] = None,
+    ) -> User:
+        """Создаёт или обновляет пользователя на основе данных Telegram."""
+
+        existing = await self.get_by_telegram_id(telegram_id)
+        now = datetime.utcnow()
+
+        if existing:
+            update_data: Dict[str, Optional[str]] = {}
+            if username and existing.username != username:
+                update_data["username"] = username
+            if first_name and existing.first_name != first_name:
+                update_data["first_name"] = first_name
+            if last_name and existing.last_name != last_name:
+                update_data["last_name"] = last_name
+            if language_code and existing.language_code != language_code:
+                update_data["language_code"] = language_code
+
+            update_data["last_active_at"] = now
+            update_data["updated_at"] = now
+
+            await self.session.execute(
+                update(User)
+                .where(User.id == existing.id)
+                .values(**update_data)
+                .execution_options(synchronize_session="fetch")
+            )
+            await self.session.commit()
+            await self.session.refresh(existing)
+            return existing
+
+        user = User(
+            telegram_id=telegram_id,
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            language_code=language_code or "ru",
+            created_at=now,
+            updated_at=now,
+            last_active_at=now,
+        )
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
 
     # -------------------------------------------------
     # 🔹 Последние зарегистрированные пользователи

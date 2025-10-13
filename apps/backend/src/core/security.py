@@ -18,7 +18,7 @@ import hashlib
 import base64
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Mapping, Optional, Dict
 
 import jwt  # PyJWT
 from fastapi import HTTPException, status
@@ -139,3 +139,20 @@ def build_user_payload(user_id: int, username: Optional[str] = None) -> dict:
     if username:
         payload["username"] = username
     return payload
+
+
+def create_user_session(user: Mapping[str, Any] | Any, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a session token for a given user object or mapping."""
+
+    if isinstance(user, Mapping):
+        user_id = user.get("id") or user.get("sub")
+        username = user.get("username")
+    else:
+        user_id = getattr(user, "id", None)
+        username = getattr(user, "username", None)
+
+    if not user_id:
+        raise ValueError("User object must provide an identifier")
+
+    payload = build_user_payload(int(user_id), username=username)
+    return create_session_token(payload, expires_delta)

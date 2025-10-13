@@ -18,26 +18,13 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Query
 
-from adapters.telegram import (
-    TelegramClient,
-    validate_webapp_data,
-    send_notification,
-)
 from adapters.telegram.webhook import telegram_webhook
-from core.security import create_user_session  # создаёт JWT/UZT-токен для WebApp
-from domain.services.users import UserService
+from api.v1.deps import get_bot_service
+from bot.app.service import BotService, NotificationDeliveryError, WebAppAuthError
 
 logger = logging.getLogger("uzinex.api.telegram")
 
 router = APIRouter(tags=["Telegram"], prefix="/telegram")
-
-
-# -------------------------------------------------
-# 🔹 Зависимости
-# -------------------------------------------------
-
-async def get_user_service() -> UserService:
-    return UserService()
 
 
 # -------------------------------------------------
@@ -60,41 +47,23 @@ async def telegram_bot_webhook(request: Request):
 async def telegram_webapp_auth(
     init_data: str = Query(..., description="Telegram WebApp initData строка"),
     bot_token: str = Query(..., description="Токен Telegram-бота"),
-    user_service: UserService = Depends(get_user_service),
+    bot_service: BotService = Depends(get_bot_service),
 ):
     """
     🔐 Проверяет подлинность initData и возвращает токен авторизации (UZT-session).
     """
     try:
-        validation = validate_webapp_data(init_data, bot_token)
-        if not validation.valid:
-            raise HTTPException(status_code=400, detail="Invalid Telegram data")
-
-        # Проверяем наличие пользователя в базе
-        user = await user_service.get_or_create_telegram_user(
-            telegram_id=validation.user_id,
-            username=validation.username,
+        auth_result = await bot_service.authenticate_webapp(init_data=init_data, bot_token=bot_token)
+        logger.info(
+            "[Telegram] WebApp auth OK for telegram_id=%s",
+            auth_result.user.telegram_id,
         )
-
-        # Создаём JWT/UZT session-токен
-        token = create_user_session(user)
-
-        logger.info(f"[Telegram] WebApp auth OK for {validation.username} (ID={validation.user_id})")
-        return {
-            "ok": True,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "balance": user.balance_uzt,
-            },
-            "session_token": token,
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
+        return auth_result.to_dict()
+    except WebAppAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - defensive branch
         logger.exception("[Telegram] WebApp auth failed")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
 
 
 # -------------------------------------------------
@@ -103,7 +72,7 @@ async def telegram_webapp_auth(
 
 @router.post("/notify", response_model=Dict[str, Any])
 async def send_test_notification(
-    telegram_client: TelegramClient = Depends(),
+    bot_service: BotService = Depends(get_bot_service),
     user_id: int = Query(..., description="Telegram ID получателя"),
     text: str = Query(..., description="Текст уведомления"),
 ):
@@ -112,9 +81,11 @@ async def send_test_notification(
     Используется для проверки интеграции Bot API.
     """
     try:
-        await send_notification(telegram_client, user_id=user_id, text=text, message_type="info")
-        logger.info(f"[Telegram] Test notification sent to {user_id}")
-        return {"ok": True, "message": "Notification sent"}
-    except Exception as e:
+        result = await bot_service.notify_user(user_id=user_id, text=text, message_type="info")
+        logger.info("[Telegram] Test notification sent to %s", user_id)
+        return {"ok": result.delivered, "message": "Notification sent"}
+    except NotificationDeliveryError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - defensive branch
         logger.exception("[Telegram] Failed to send test notification")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
