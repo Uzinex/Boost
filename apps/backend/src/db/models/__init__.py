@@ -17,8 +17,6 @@ Uzinex Boost — Database Models
 
 from __future__ import annotations
 
-from core.database import Base
-
 # Импорт всех моделей (в строгом порядке для Alembic)
 from .user_model import User
 from .balance_model import BalanceTransaction
