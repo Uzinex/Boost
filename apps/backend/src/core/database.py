@@ -1,76 +1,48 @@
 """
-Uzinex Boost — Database Configuration (Railway Edition)
-=======================================================
+Uzinex Boost — Core Database Utilities
+======================================
 
-Настройка асинхронного подключения к PostgreSQL через SQLAlchemy + asyncpg.
-Поддерживает SSL (Railway proxy требует защищённое соединение).
+Асинхронная интеграция с PostgreSQL через SQLAlchemy.
+Используется во всех сервисах, репозиториях и FastAPI зависимостях.
 """
 
 from __future__ import annotations
+import logging
+from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import AsyncSession
 
-import ssl
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import text
-from core.config import settings
+from db.base import async_session_factory, engine, Base
 
-
-# -------------------------------------------------
-# 🔹 SSL для Railway PostgreSQL
-# -------------------------------------------------
-ssl_context = ssl.create_default_context()
-ssl_context.check_hostname = False
-ssl_context.verify_mode = ssl.CERT_NONE
+logger = logging.getLogger("uzinex.core.database")
 
 
 # -------------------------------------------------
-# 🔹 Создание асинхронного движка SQLAlchemy
+# 🔹 Получение асинхронной сессии (FastAPI dependency)
 # -------------------------------------------------
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=False,
-    future=True,
-    pool_pre_ping=True,
-    connect_args={"ssl": ssl_context},  # Railway требует SSL
-)
-
-
-# -------------------------------------------------
-# 🔹 Сессия и базовый класс
-# -------------------------------------------------
-AsyncSessionLocal = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-Base = declarative_base()
-
-
-# -------------------------------------------------
-# 🔹 Dependency helper
-# -------------------------------------------------
-async def get_session() -> AsyncSession:
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """
-    Асинхронная зависимость для получения сессии БД (FastAPI Depends).
+    Dependency для FastAPI.
+    Создаёт новую асинхронную сессию SQLAlchemy и закрывает её по завершении запроса.
     """
-    async with AsyncSessionLocal() as session:
-        yield session
+    async with async_session_factory() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
 # -------------------------------------------------
-# 🔹 Проверка соединения с базой данных
+# 🔹 Тест соединения с базой данных
 # -------------------------------------------------
 async def test_database_connection() -> bool:
     """
-    Тестирует соединение с базой данных при старте приложения.
-    Возвращает True, если соединение установлено успешно.
+    Проверяет подключение к PostgreSQL (используется при старте приложения).
     """
     try:
         async with engine.begin() as conn:
-            await conn.execute(text("SELECT 1"))
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("🗄 PostgreSQL connection: ✅ OK")
         return True
     except Exception as e:
-        import logging
-        logging.error(f"❌ Database connection test failed: {e}")
+        logger.error(f"❌ PostgreSQL connection failed: {e}")
         return False
