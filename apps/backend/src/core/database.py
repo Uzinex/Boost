@@ -3,41 +3,51 @@ Uzinex Boost — Core Database Utilities
 ======================================
 
 Асинхронная интеграция с PostgreSQL через SQLAlchemy.
-Используется во всех сервисах, репозиториях и FastAPI зависимостях.
 """
 
 from __future__ import annotations
 import logging
 from typing import AsyncGenerator
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from db.base import async_session_factory, engine, Base
+from core.config import settings
+from db.base import Base  # безопасно, т.к. теперь db/base не тянет core обратно
 
 logger = logging.getLogger("uzinex.core.database")
 
+# -------------------------------------------------
+# 🔹 Асинхронный движок
+# -------------------------------------------------
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    future=True,
+    pool_pre_ping=True,
+)
 
 # -------------------------------------------------
-# 🔹 Получение асинхронной сессии (FastAPI dependency)
+# 🔹 Сессия
+# -------------------------------------------------
+async_session_factory = async_sessionmaker(
+    bind=engine,
+    expire_on_commit=False,
+    class_=AsyncSession,
+)
+
+# -------------------------------------------------
+# 🔹 Зависимости
 # -------------------------------------------------
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Dependency для FastAPI.
-    Создаёт новую асинхронную сессию SQLAlchemy и закрывает её по завершении запроса.
-    """
+    """Dependency для FastAPI — создаёт сессию и автоматически закрывает её."""
     async with async_session_factory() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session
 
 
 # -------------------------------------------------
-# 🔹 Тест соединения с базой данных
+# 🔹 Health-check для старта
 # -------------------------------------------------
 async def test_database_connection() -> bool:
-    """
-    Проверяет подключение к PostgreSQL (используется при старте приложения).
-    """
+    """Проверяет соединение с базой данных при старте приложения."""
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
