@@ -1,0 +1,101 @@
+# ============================================================
+# Uzinex Boost v2.0 — Telegram Bot Application (pyproject.toml)
+# ============================================================
+# Этот файл описывает конфигурацию Poetry для слоя bot.app,
+# отвечающего за бизнес-логику Telegram-бота внутри backend.
+# ------------------------------------------------------------
+# Версия: 1.0.0
+# Python: >=3.11
+# Автор: Feruz Dilov (Nexar Voltrex)
+# ============================================================
+
+[tool.poetry]
+name = "uzinex-bot-app"
+version = "1.0.0"
+description = "Domain services for the Uzinex Boost Telegram bot (async FastAPI + SQLAlchemy)."
+authors = ["Feruz Dilov <founder@uzinex.uz>"]
+license = "MIT"
+homepage = "https://uzinex.uz"
+repository = "https://github.com/uzinex/boost-backend"
+keywords = ["uzinex", "telegram", "bot", "fastapi", "asyncio"]
+readme = "README.md"
+
+# Пакеты, публикуемые в составе дистрибутива
+packages = [
+    { include = "app" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+# --- Web framework & API contracts
+fastapi = "^0.115.0"
+
+# --- Async database access
+sqlalchemy = "^2.0.36"
+
+# --- HTTP client for Telegram Bot API
+httpx = "^0.27.2"
+
+# --- Data validation & settings
+pydantic = "^2.8.2"
+
+# --- Structured logging utilities
+loguru = "^0.7.2"
+
+# --- JWT session tokens
+pyjwt = "^2.9.0"
+
+[tool.poetry.group.dev.dependencies]
+# --- Testing
+pytest = "^8.3.2"
+pytest-asyncio = "^0.23.8"
+
+# --- Linting & formatting
+ruff = "^0.6.9"
+black = "^24.10.0"
+
+# --- Type checking
+mypy = "^1.12.1"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = "\.(py|pyi)$"
+exclude = """
+/(
+    \.venv
+  | build
+  | dist
+  | __pycache__
+  | migrations
+)/
+"""
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "B", "Q", "UP"]
+ignore = ["E203"]
+fix = true
+show-source = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_return_any = true
+warn_unused_ignores = true
+strict_optional = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
