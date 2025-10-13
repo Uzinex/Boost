@@ -21,8 +21,8 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from domain.services.payments import PaymentService
-from domain.services.balance import BalanceService
+from domain.services.payment_service import PaymentService
+from domain.services.balance_service import BalanceService
 from adapters.payments import get_provider
 from adapters.telegram import TelegramClient, send_notification
 from core.security import get_current_user  # авторизация через Telegram WebApp

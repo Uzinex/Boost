@@ -16,8 +16,8 @@ import logging
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import Any, Dict, List
 
-from domain.services.payments import PaymentService
-from domain.services.users import UserService
+from domain.services.payment_service import PaymentService
+from domain.services.user_service import UserService
 from adapters.payments import get_provider
 from adapters.telegram import send_notification, TelegramClient
 from core.security import get_current_admin  # (в будущем – зависимость аутентификации)

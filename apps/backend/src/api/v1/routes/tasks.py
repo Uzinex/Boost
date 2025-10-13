@@ -19,8 +19,8 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 
-from domain.services.tasks import TaskService
-from domain.services.balance import BalanceService
+from domain.services.task_service import TaskService
+from domain.services.balance_service import BalanceService
 from adapters.telegram import TelegramClient, send_notification
 from core.security import get_current_user  # авторизация через Telegram WebApp
 
