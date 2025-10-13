@@ -12,10 +12,7 @@ Uzinex Boost — Domain Rules Package
 
 Архитектура:
 ------------
-Каждое правило реализует базовый класс `Rule` и описывает:
-  - условия (Condition) — при каких обстоятельствах правило применяется;
-  - действия или результаты (RuleResult) — что происходит при успешной или неуспешной проверке;
-  - сообщения для пользователя или системы.
+Каждое правило реализует базовый класс `BaseRule` и возвращает `RuleResult`.
 
 Пример применения:
 ------------------
@@ -34,10 +31,9 @@ if not await BalanceRules.can_withdraw(user_id, amount):
 - domain.services.task
 """
 
-from domain.rules.base import Rule, Condition, RuleResult
+from domain.rules.base import BaseRule, RuleResult
 
 __all__ = [
-    "Rule",
-    "Condition",
+    "BaseRule",
     "RuleResult",
 ]
