@@ -15,7 +15,6 @@ Uzinex Boost Core — Configuration
 
 from __future__ import annotations
 
-import os
 from pydantic import BaseSettings, Field
 from functools import lru_cache
 
@@ -34,6 +33,9 @@ class Settings(BaseSettings):
     APP_VERSION: str = Field("2.0.0", description="Версия API")
     APP_ENV: str = Field("production", description="Окружение: development | staging | production")
     API_V1_PREFIX: str = Field("/api/v1", description="Префикс всех REST эндпоинтов")
+    CORS_ORIGINS: list[str] = Field(
+        default_factory=lambda: ["*"], description="Разрешённые источники для CORS"
+    )
 
     # --- 🌐 URLs ---
     BASE_DOMAIN: str = Field("https://boost.uzinex.com", description="Основной домен WebApp")
@@ -41,6 +43,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = Field("https://boost.uzinex.com", description="Фронтенд (WebApp) URL")
 
     # --- 🗄 Database ---
+    DATABASE_URL: str | None = Field(
+        None, description="Полный URL подключения к PostgreSQL (если задан)"
+    )
     DB_HOST: str = Field("localhost", description="Хост PostgreSQL")
     DB_PORT: int = Field(5432, description="Порт PostgreSQL")
     DB_USER: str = Field("postgres", description="Имя пользователя базы данных")
@@ -101,11 +106,11 @@ settings = get_settings()
 # -------------------------------------------------
 
 # Формируем URL подключения к PostgreSQL
-settings.DATABASE_URL = (
-    settings.REDIS_URL
-    if settings.REDIS_URL
-    else f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+database_url = settings.DATABASE_URL or (
+    f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}"
+    f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 )
+settings.DATABASE_URL = database_url
 
 # Формируем URL Redis (если не указан)
 if not settings.REDIS_URL:
