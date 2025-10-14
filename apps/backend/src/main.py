@@ -32,6 +32,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
+from sqlalchemy.exc import SQLAlchemyError
 
 # -------------------------------------------------
 # 🔹 Настройка путей (универсально для Railway и локали)
@@ -78,6 +79,10 @@ app = FastAPI(
     redoc_url="/api/redoc",
 )
 
+# Позволяет эндпоинтам знать, успешно ли инициализировалась БД
+app.state.database_ready: bool | None = None
+app.state.startup_errors: list[str] = []
+
 if WEBAPP_SRC.exists():
     app.mount("/src", StaticFiles(directory=WEBAPP_SRC), name="webapp-src")
 
@@ -120,8 +125,24 @@ except ImportError as e:
 async def on_startup():
     """Выполняется при запуске приложения."""
     logger.info("🔧 Initializing Uzinex Boost backend components...")
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
+    app.state.startup_errors = []
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(Base.metadata.create_all)
+    except SQLAlchemyError as exc:
+        app.state.database_ready = False
+        error_message = (
+            "PostgreSQL migrations skipped — continuing without a database connection."
+        )
+        logger.error(f"❌ {error_message} ({exc})")
+        app.state.startup_errors.append(error_message)
+    except Exception as exc:  # pragma: no cover - safety net
+        app.state.database_ready = False
+        error_message = "Unexpected error while preparing the database connection."
+        logger.exception(f"❌ {error_message} ({exc})")
+        app.state.startup_errors.append(error_message)
+    else:
+        app.state.database_ready = True
     await init_app()
     logger.success("✅ Application startup completed.")
 
@@ -151,11 +172,15 @@ async def serve_webapp():
         return FileResponse(dev_index)
 
     logger.warning("⚠️ WebApp index not found, falling back to JSON healthcheck.")
+    database_ready = getattr(app.state, "database_ready", None)
+    status = "ok" if database_ready in (True, None) else "degraded"
     return {
-        "status": "ok",
+        "status": status,
         "service": "Uzinex Boost Backend",
         "version": "2.0.0",
         "environment": settings.APP_ENV,
+        "database_ready": database_ready,
+        "startup_errors": app.state.startup_errors,
     }
 
 
