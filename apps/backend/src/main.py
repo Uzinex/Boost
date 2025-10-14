@@ -45,7 +45,7 @@ if BOT_PATH not in sys.path:
     sys.path.append(BOT_PATH)
 
 WEBAPP_DIR = Path(BACKEND_ROOT) / "bot" / "webapp"
-WEBAPP_INDEX = WEBAPP_DIR / "index.html"
+
 WEBAPP_PUBLIC = WEBAPP_DIR / "public"
 WEBAPP_SRC = WEBAPP_DIR / "src"
 
@@ -80,6 +80,7 @@ app = FastAPI(
 
 if WEBAPP_SRC.exists():
     app.mount("/src", StaticFiles(directory=WEBAPP_SRC), name="webapp-src")
+
 
 styles_dir = WEBAPP_PUBLIC / "styles"
 if styles_dir.exists():
@@ -138,9 +139,7 @@ async def on_shutdown():
 @app.get("/", include_in_schema=False)
 async def serve_webapp():
     """Возвращает собранный Telegram WebApp или healthcheck JSON, если сборки нет."""
-    if WEBAPP_INDEX.exists():
-        logger.info("🌐 Serving WebApp index: %s", WEBAPP_INDEX)
-        return FileResponse(WEBAPP_INDEX)
+
 
     logger.warning("⚠️ WebApp index not found, falling back to JSON healthcheck.")
     return {
@@ -153,18 +152,12 @@ async def serve_webapp():
 
 @app.get("/manifest.webmanifest", include_in_schema=False)
 async def serve_manifest():
-    manifest_path = WEBAPP_PUBLIC / "manifest.webmanifest"
-    if not manifest_path.exists():
-        raise HTTPException(status_code=404, detail="Manifest not found")
-    return FileResponse(manifest_path, media_type="application/manifest+json")
+
 
 
 @app.get("/favicon.svg", include_in_schema=False)
 async def serve_favicon():
-    favicon_path = WEBAPP_PUBLIC / "favicon.svg"
-    if not favicon_path.exists():
-        raise HTTPException(status_code=404, detail="Favicon not found")
-    return FileResponse(favicon_path, media_type="image/svg+xml")
+
 
 
 @app.get("/healthz", tags=["System"])
