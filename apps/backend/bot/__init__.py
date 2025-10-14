@@ -1,5 +1,5 @@
-"""Integration helpers for the Telegram bot within the backend codebase."""
+from aiogram import Bot, Dispatcher
+from core.config import settings
 
-__all__ = [
-    "app",
-]
+bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+dp = Dispatcher()
