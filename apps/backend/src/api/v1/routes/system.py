@@ -22,7 +22,7 @@ import time
 import logging
 from fastapi import APIRouter, HTTPException, status
 
-from domain.services.health import HealthService
+# from domain.services.health import HealthService
 from adapters.cache.redis_cache import RedisCache  # инфраструктурный слой
 
 
