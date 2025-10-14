@@ -27,6 +27,20 @@ from .contracts import (
 )
 from .exceptions import BotServiceError, NotificationDeliveryError, WebAppAuthError
 
+from aiogram import Router, F
+from aiogram.filters import CommandStart
+from aiogram.types import Message
+
+router = Router()
+
+@router.message(CommandStart())
+async def start_cmd(message: Message):
+    await message.answer(
+        "👋 Привет! Это <b>Uzinex Boost</b> 🚀\n\n"
+        "Ты успешно подключился к системе заданий.\n"
+        "Нажми кнопку <b>Open</b> в чате, чтобы открыть WebApp.",
+        parse_mode="HTML",
+    )
 
 @dataclass(slots=True)
 class BotService:
