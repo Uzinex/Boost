@@ -139,7 +139,16 @@ async def on_shutdown():
 @app.get("/", include_in_schema=False)
 async def serve_webapp():
     """Возвращает собранный Telegram WebApp или healthcheck JSON, если сборки нет."""
+    build_index = WEBAPP_PUBLIC / "index.html"
+    dev_index = WEBAPP_DIR / "index.html"
 
+    if build_index.exists():
+        logger.debug("📄 Serving built webapp index.html")
+        return FileResponse(build_index)
+
+    if dev_index.exists():
+        logger.debug("🛠️ Serving development webapp index.html")
+        return FileResponse(dev_index)
 
     logger.warning("⚠️ WebApp index not found, falling back to JSON healthcheck.")
     return {
@@ -152,12 +161,22 @@ async def serve_webapp():
 
 @app.get("/manifest.webmanifest", include_in_schema=False)
 async def serve_manifest():
+    manifest_path = WEBAPP_PUBLIC / "manifest.webmanifest"
+    if manifest_path.exists():
+        logger.debug("🧾 Serving manifest.webmanifest")
+        return FileResponse(manifest_path, media_type="application/manifest+json")
 
+    raise HTTPException(status_code=404, detail="manifest.webmanifest not found")
 
 
 @app.get("/favicon.svg", include_in_schema=False)
 async def serve_favicon():
+    favicon_path = WEBAPP_PUBLIC / "favicon.svg"
+    if favicon_path.exists():
+        logger.debug("🖼️ Serving favicon.svg")
+        return FileResponse(favicon_path, media_type="image/svg+xml")
 
+    raise HTTPException(status_code=404, detail="favicon.svg not found")
 
 
 @app.get("/healthz", tags=["System"])
