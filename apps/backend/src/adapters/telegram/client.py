@@ -184,3 +184,15 @@ class TelegramClient:
         """Закрывает HTTP-клиент."""
         await self._client.aclose()
         logger.info("🔒 TelegramClient session closed.")
+
+        async def get_me(self) -> dict:
+        """
+        Получает информацию о текущем Telegram-боте.
+        Аналог API-метода getMe.
+        """
+        try:
+            response = await self._request("getMe")
+            return response.get("result", {})
+        except Exception as e:
+            raise RuntimeError(f"Telegram getMe failed: {e}")
+
