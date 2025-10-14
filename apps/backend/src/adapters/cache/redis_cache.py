@@ -209,3 +209,12 @@ class RedisCache(CacheBackend):
             await client.flushdb()
         except Exception as e:
             raise CacheInternalError("FLUSHDB failed", cause=e)
+
+        async def ping(self) -> bool:
+        """Проверяет соединение с Redis."""
+        try:
+            pong = await self.redis.ping()
+            return bool(pong)
+        except Exception:
+            return False
+
