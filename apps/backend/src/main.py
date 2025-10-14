@@ -128,3 +128,19 @@ async def root():
         "version": "2.0.0",
         "environment": settings.APP_ENV,
     }
+
+# В самом конце main.py
+@app.on_event("startup")
+async def start_bot_on_backend():
+    """Запускает Telegram-бота параллельно с backend"""
+    from aiogram import executor
+    from bot import dp
+
+    async def run_bot():
+        import asyncio
+        await asyncio.sleep(1)  # ждём пока API поднимется
+        logger.info("🤖 Launching Telegram bot polling...")
+        await dp.start_polling()
+
+    asyncio.create_task(run_bot())
+
