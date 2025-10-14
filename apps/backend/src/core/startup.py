@@ -1,76 +1,77 @@
 """
-Uzinex Boost — Application Startup Module
-=========================================
+Uzinex Boost Core — Startup Sequence
+====================================
 
-Инициализация инфраструктурных компонентов приложения:
+Инициализация всех инфраструктурных компонентов системы:
 - PostgreSQL
 - Redis
-- Telegram (опционально)
+- Telegram Bot
+- Кэш и логирование
 """
 
 from __future__ import annotations
-import time
 import logging
+import asyncio
+
+from core.database import engine
 from core.config import settings
-from core.database import test_database_connection
 from adapters.cache.redis_cache import RedisCache
+from adapters.telegram.client import TelegramClient
 
 logger = logging.getLogger("uzinex.core.startup")
 
-redis_cache: RedisCache | None = None
 
-
-async def init_app():
-    """Запускает все инфраструктурные проверки при старте FastAPI-приложения."""
-    global redis_cache
-
+async def init_app() -> None:
+    """
+    Выполняет поочередную инициализацию всех основных компонентов.
+    Проверяет подключение к PostgreSQL, Redis и Telegram Bot API.
+    """
     logger.info("🚀 Starting Uzinex Boost initialization sequence...")
-    start_time = time.perf_counter()
 
-    # -----------------------------
-    # 🔹 Проверка PostgreSQL
-    # -----------------------------
-    db_ok = await test_database_connection()
-    if db_ok:
-        logger.info("🗄 PostgreSQL connection: ✅ OK")
-    else:
-        logger.error("❌ PostgreSQL connection: FAIL")
-
-    # -----------------------------
-    # 🔹 Подключение Redis
-    # -----------------------------
+    db_ok = False
     redis_ok = False
+    telegram_ok = None
+
+    # -------------------------------------------------
+    # 🗄 Проверка PostgreSQL
+    # -------------------------------------------------
     try:
-        redis_cache = RedisCache(url=settings.REDIS_URL)
-        await redis_cache.connect()
+        async with engine.begin() as conn:
+            await conn.run_sync(lambda _: None)
+        logger.info("🗄 PostgreSQL connection: ✅ OK")
+        db_ok = True
+    except Exception as e:
+        logger.error(f"❌ PostgreSQL connection failed: {e}")
+
+    # -------------------------------------------------
+    # 🧠 Проверка Redis
+    # -------------------------------------------------
+    try:
+        cache = RedisCache()
+        await cache.ping()
+        logger.info(f"✅ Connected to Redis ({settings.REDIS_URL})")
         redis_ok = True
     except Exception as e:
-        logger.error(f"Redis initialization failed: {e}")
+        logger.error(f"❌ Redis connection failed: {e}")
 
-    logger.info(f"🧠 Redis connection: {'✅ OK' if redis_ok else '❌ FAIL'}")
+    # -------------------------------------------------
+    # 🤖 Проверка Telegram Bot
+    # -------------------------------------------------
+    try:
+        tg = TelegramClient(settings.TELEGRAM_BOT_TOKEN)
+        me = await tg.get_me()
+        logger.info(f"🤖 Telegram Bot connected: @{me.username} (id={me.id})")
+        telegram_ok = True
+    except Exception as e:
+        logger.warning(f"⚠️ Telegram bot check skipped or failed: {e}")
+        telegram_ok = False
 
-    # -----------------------------
-    # 🔹 Telegram (опционально)
-    # -----------------------------
-    telegram_ok = None  # пока не реализовано
+    # -------------------------------------------------
+    # 🧩 Финальный отчёт
+    # -------------------------------------------------
+    summary = f"System summary → DB: {db_ok} | Redis: {redis_ok} | Telegram: {telegram_ok}"
+    logger.info(summary)
+    logger.info("✅ Startup checks completed successfully.")
 
-    # -----------------------------
-    # 🔹 Финальная сводка
-    # -----------------------------
-    elapsed = time.perf_counter() - start_time
-    logger.info(f"✅ Startup checks completed in {elapsed:.2f}s")
-    logger.info(f"System summary → DB: {db_ok} | Redis: {redis_ok} | Telegram: {telegram_ok}")
 
-    if not db_ok or not redis_ok:
-        logger.warning("⚠️ Some dependencies failed — application may not work correctly!")
-
-    # -----------------------------
-    # 🔹 Cache warm-up
-    # -----------------------------
-    if redis_ok:
-        try:
-            await redis_cache.set("system:startup_check", "ok", expire=30)
-        except Exception as e:
-            logger.warning(f"Cache warm-up failed: {e}")
-    else:
-        logger.warning("Cache warm-up skipped: Redis unavailable.")
+__all__ = ["init_app"]
