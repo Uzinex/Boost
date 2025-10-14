@@ -16,7 +16,10 @@ Uzinex Boost — Main Application Entry Point
 --------
 $ uvicorn apps.backend.src.main:app --reload
 """
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../bot")))
 
+from bot import dp
 from __future__ import annotations
 import asyncio
 from fastapi import FastAPI
