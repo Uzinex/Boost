@@ -12,7 +12,7 @@ Uzinex Boost — Main Application Entry Point
 - регистрация маршрутов API (v1);
 - подключение middlewares (CORS, Logging);
 - события старта и завершения приложения;
-- интеграция с базой данных и логированием.
+- интеграция с базой данных, Redis и Telegram Bot.
 
 Запуск:
 --------
@@ -20,27 +20,30 @@ $ uvicorn apps.backend.src.main:app --reload
 """
 
 # -------------------------------------------------
-# 🔹 Импорт путей и зависимостей
+# 🔹 Импорт стандартных зависимостей
 # -------------------------------------------------
-import sys
 import os
+import sys
 import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-# Добавляем путь к Telegram Bot (apps/bot)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../bot")))
+# -------------------------------------------------
+# 🔹 Добавляем путь к Telegram Bot
+# -------------------------------------------------
+BOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bot"))
+if BOT_PATH not in sys.path:
+    sys.path.append(BOT_PATH)
 
-# Импорт Telegram Bot dispatcher (если используется)
 try:
-    from bot import dp  # type: ignore
+    from bot.app.service.bot_service import *  # основной модуль бота
     logger.info("🤖 Telegram Bot module loaded successfully.")
 except Exception as e:
     logger.warning(f"⚠️ Telegram Bot module not loaded: {e}")
 
 # -------------------------------------------------
-# 🔹 Основные модули ядра
+# 🔹 Импорты ядра приложения
 # -------------------------------------------------
 from core.config import settings
 from core.database import engine
@@ -48,9 +51,8 @@ from core.startup import init_app
 from core.logging import setup_logging
 from db.base import Base
 
-
 # -------------------------------------------------
-# 🔹 Инициализация FastAPI-приложения
+# 🔹 Инициализация FastAPI
 # -------------------------------------------------
 app = FastAPI(
     title="Uzinex Boost API",
@@ -60,9 +62,8 @@ app = FastAPI(
     redoc_url="/api/redoc",
 )
 
-
 # -------------------------------------------------
-# 🔹 CORS
+# 🔹 CORS Middleware
 # -------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -72,13 +73,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # -------------------------------------------------
-# 🔹 Логирование
+# 🔹 Логирование и стартовое сообщение
 # -------------------------------------------------
 setup_logging()
 logger.info("🚀 Starting Uzinex Boost API v2.0...")
-
 
 # -------------------------------------------------
 # 🔹 Подключение маршрутов
@@ -90,7 +89,6 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ API routes not loaded: {e}")
 
-
 # -------------------------------------------------
 # 🔹 События приложения
 # -------------------------------------------------
@@ -100,6 +98,7 @@ async def on_startup():
     logger.info("🔧 Initializing Uzinex Boost backend components...")
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
+
     await init_app()
     logger.success("✅ Application startup completed.")
 
@@ -111,9 +110,8 @@ async def on_shutdown():
     await asyncio.sleep(0.1)
     logger.success("🛑 Application stopped gracefully.")
 
-
 # -------------------------------------------------
-# 🔹 Корневой маршрут (healthcheck)
+# 🔹 Корневой маршрут (Healthcheck)
 # -------------------------------------------------
 @app.get("/", tags=["System"])
 async def root():
