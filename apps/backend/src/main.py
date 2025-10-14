@@ -129,18 +129,23 @@ async def root():
         "environment": settings.APP_ENV,
     }
 
-# В самом конце main.py
+# -------------------------------------------------
+# 🔹 Автозапуск Telegram Bot при старте backend
+# -------------------------------------------------
 @app.on_event("startup")
 async def start_bot_on_backend():
-    """Запускает Telegram-бота параллельно с backend"""
-    from aiogram import executor
-    from bot import dp
+    """Запускает Telegram-бота параллельно с backend (Aiogram v3)."""
+    import asyncio
+    from bot import dp, bot  # Убедись, что в bot/__init__.py есть bot = Bot(...)
 
     async def run_bot():
-        import asyncio
-        await asyncio.sleep(1)  # ждём пока API поднимется
-        logger.info("🤖 Launching Telegram bot polling...")
-        await dp.start_polling()
+        await asyncio.sleep(2)  # ждём, пока API и Redis поднимутся
+        logger.info("🤖 Launching Telegram bot polling (Aiogram 3)...")
+        try:
+            await dp.start_polling(bot)
+        except Exception as e:
+            logger.error(f"❌ Telegram bot polling stopped: {e}")
 
     asyncio.create_task(run_bot())
+
 
