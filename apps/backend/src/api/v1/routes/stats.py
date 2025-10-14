@@ -17,7 +17,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from domain.services.stats import StatsService
+from domain.services.stats_service import StatsService
 from domain.services.task_service import TaskService
 from domain.services.payment_service import PaymentService
 from core.security import get_current_user, get_current_admin  # доступы
