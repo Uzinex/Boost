@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 from urllib.parse import unquote_plus
@@ -14,7 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from adapters.telegram import TelegramClient, send_notification as telegram_send_notification
 from adapters.telegram.exceptions import TelegramMessageError
 from adapters.telegram.notifier import broadcast as telegram_broadcast
-from core.security import build_user_payload, create_session_token, validate_telegram_init_data
+from core.config import settings
+from core.security import (
+    build_user_payload,
+    create_session_token,
+    validate_telegram_init_data,
+)
 from db.models.user_model import User
 from db.repositories.user_repository import UserRepository
 from domain.services.payment_service import PaymentService
@@ -27,19 +33,37 @@ from .contracts import (
 )
 from .exceptions import BotServiceError, NotificationDeliveryError, WebAppAuthError
 
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, WebAppInfo
 
 router = Router()
 
+
+def _build_main_keyboard() -> ReplyKeyboardMarkup:
+    webapp_url = os.getenv("WEBAPP_URL") or settings.FRONTEND_URL or settings.BASE_DOMAIN
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(
+                    text="🚀 Open WebApp",
+                    web_app=WebAppInfo(url=webapp_url),
+                )
+            ]
+        ],
+        resize_keyboard=True,
+        input_field_placeholder="Нажмите кнопку ниже 👇",
+    )
+
+
 @router.message(CommandStart())
-async def start_cmd(message: Message):
+async def start_cmd(message: Message) -> None:
+    keyboard = _build_main_keyboard()
     await message.answer(
         "👋 Привет! Это <b>Uzinex Boost</b> 🚀\n\n"
-        "Ты успешно подключился к системе заданий.\n"
-        "Нажми кнопку <b>Open</b> в чате, чтобы открыть WebApp.",
-        parse_mode="HTML",
+        "💼 Через меня ты можешь выполнять задания и управлять балансом.\n\n"
+        "Нажми кнопку ниже, чтобы открыть WebApp 👇",
+        reply_markup=keyboard,
     )
 
 @dataclass(slots=True)
