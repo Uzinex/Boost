@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Uzinex Boost — Main Application Entry Point
 ===========================================
@@ -16,16 +18,30 @@ Uzinex Boost — Main Application Entry Point
 --------
 $ uvicorn apps.backend.src.main:app --reload
 """
-import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../bot")))
 
-from bot import dp
-from __future__ import annotations
+# -------------------------------------------------
+# 🔹 Импорт путей и зависимостей
+# -------------------------------------------------
+import sys
+import os
 import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
+# Добавляем путь к Telegram Bot (apps/bot)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../bot")))
+
+# Импорт Telegram Bot dispatcher (если используется)
+try:
+    from bot import dp  # type: ignore
+    logger.info("🤖 Telegram Bot module loaded successfully.")
+except Exception as e:
+    logger.warning(f"⚠️ Telegram Bot module not loaded: {e}")
+
+# -------------------------------------------------
+# 🔹 Основные модули ядра
+# -------------------------------------------------
 from core.config import settings
 from core.database import engine
 from core.startup import init_app
@@ -34,7 +50,7 @@ from db.base import Base
 
 
 # -------------------------------------------------
-# 🔹 Инициализация приложения
+# 🔹 Инициализация FastAPI-приложения
 # -------------------------------------------------
 app = FastAPI(
     title="Uzinex Boost API",
@@ -46,7 +62,7 @@ app = FastAPI(
 
 
 # -------------------------------------------------
-# 🔹 Настройка CORS
+# 🔹 CORS
 # -------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -58,7 +74,7 @@ app.add_middleware(
 
 
 # -------------------------------------------------
-# 🔹 Логирование и конфигурация
+# 🔹 Логирование
 # -------------------------------------------------
 setup_logging()
 logger.info("🚀 Starting Uzinex Boost API v2.0...")
@@ -70,6 +86,7 @@ logger.info("🚀 Starting Uzinex Boost API v2.0...")
 try:
     from api.v1.routes import router as api_router
     app.include_router(api_router, prefix="/api/v1")
+    logger.info("✅ API routes successfully registered.")
 except ImportError as e:
     logger.warning(f"⚠️ API routes not loaded: {e}")
 
@@ -79,10 +96,7 @@ except ImportError as e:
 # -------------------------------------------------
 @app.on_event("startup")
 async def on_startup():
-    """
-    Выполняется при запуске приложения.
-    Подключает базу данных и инициализирует ключевые модули.
-    """
+    """Выполняется при запуске приложения."""
     logger.info("🔧 Initializing Uzinex Boost backend components...")
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
@@ -92,9 +106,7 @@ async def on_startup():
 
 @app.on_event("shutdown")
 async def on_shutdown():
-    """
-    Выполняется при корректном завершении приложения.
-    """
+    """Выполняется при завершении приложения."""
     logger.info("🧹 Shutting down Uzinex Boost backend...")
     await asyncio.sleep(0.1)
     logger.success("🛑 Application stopped gracefully.")
@@ -105,9 +117,7 @@ async def on_shutdown():
 # -------------------------------------------------
 @app.get("/", tags=["System"])
 async def root():
-    """
-    Healthcheck: Проверка состояния API.
-    """
+    """Healthcheck: Проверка состояния API."""
     return {
         "status": "ok",
         "service": "Uzinex Boost Backend",
