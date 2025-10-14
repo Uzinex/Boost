@@ -30,7 +30,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 # Добавляем путь к Telegram Bot (apps/bot)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../bot")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../bot")))
 
 # Импорт Telegram Bot dispatcher (если используется)
 try:
