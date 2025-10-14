@@ -1,4 +1,4 @@
-import { getConfig } from '@/state.js';
+import { getConfig } from './state.js';
 
 let authToken = null;
 
