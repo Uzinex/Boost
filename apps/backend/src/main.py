@@ -25,8 +25,12 @@ $ uvicorn apps.backend.src.main:app --reload
 import os
 import sys
 import asyncio
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 # -------------------------------------------------
@@ -39,6 +43,13 @@ if BACKEND_ROOT not in sys.path:
 BOT_PATH = os.path.join(BACKEND_ROOT, "bot")
 if BOT_PATH not in sys.path:
     sys.path.append(BOT_PATH)
+
+WEBAPP_DIR = Path(BACKEND_ROOT) / "bot" / "webapp"
+WEBAPP_DIST = WEBAPP_DIR / "dist"
+WEBAPP_INDEX = WEBAPP_DIR / "index.html"
+WEBAPP_DIST_INDEX = WEBAPP_DIST / "index.html"
+WEBAPP_PUBLIC = WEBAPP_DIR / "public"
+WEBAPP_SRC = WEBAPP_DIR / "src"
 
 # -------------------------------------------------
 # 🔹 Попытка импортировать Telegram Bot
@@ -68,6 +79,17 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url="/api/redoc",
 )
+
+if WEBAPP_SRC.exists():
+    app.mount("/src", StaticFiles(directory=WEBAPP_SRC), name="webapp-src")
+
+webapp_dist_assets = WEBAPP_DIST / "assets"
+if webapp_dist_assets.exists():
+    app.mount("/assets", StaticFiles(directory=webapp_dist_assets), name="webapp-assets")
+
+styles_dir = WEBAPP_PUBLIC / "styles"
+if styles_dir.exists():
+    app.mount("/styles", StaticFiles(directory=styles_dir), name="webapp-styles")
 
 # -------------------------------------------------
 # 🔹 CORS Middleware
@@ -119,9 +141,45 @@ async def on_shutdown():
 # -------------------------------------------------
 # 🔹 Healthcheck Endpoint
 # -------------------------------------------------
-@app.get("/", tags=["System"])
-async def root():
-    """Healthcheck: Проверка состояния API."""
+@app.get("/", include_in_schema=False)
+async def serve_webapp():
+    """Возвращает собранный Telegram WebApp или healthcheck JSON, если сборки нет."""
+    index_candidates = [WEBAPP_DIST_INDEX, WEBAPP_INDEX]
+    for index_path in index_candidates:
+        if index_path.exists():
+            logger.info(f"🌐 Serving WebApp index: {index_path}")
+            return FileResponse(index_path)
+
+    logger.warning("⚠️ WebApp index not found, falling back to JSON healthcheck.")
+    return {
+        "status": "ok",
+        "service": "Uzinex Boost Backend",
+        "version": "2.0.0",
+        "environment": settings.APP_ENV,
+    }
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+async def serve_manifest():
+    manifest_candidates = [WEBAPP_DIST / "manifest.webmanifest", WEBAPP_PUBLIC / "manifest.webmanifest"]
+    for manifest_path in manifest_candidates:
+        if manifest_path.exists():
+            return FileResponse(manifest_path, media_type="application/manifest+json")
+    raise HTTPException(status_code=404, detail="Manifest not found")
+
+
+@app.get("/favicon.svg", include_in_schema=False)
+async def serve_favicon():
+    favicon_candidates = [WEBAPP_DIST / "favicon.svg", WEBAPP_PUBLIC / "favicon.svg"]
+    for favicon_path in favicon_candidates:
+        if favicon_path.exists():
+            return FileResponse(favicon_path, media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
+
+@app.get("/healthz", tags=["System"])
+async def healthcheck():
+    """Healthcheck endpoint for deployment probes."""
     return {
         "status": "ok",
         "service": "Uzinex Boost Backend",
