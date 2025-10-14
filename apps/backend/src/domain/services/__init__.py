@@ -1,57 +1,33 @@
 """
-Uzinex Boost — Domain Services
-==============================
+Uzinex Boost — Domain Services Package
+======================================
 
-Сервисный слой бизнес-логики платформы Uzinex Boost v2.0.
+Сервисы прикладного уровня (application / domain layer):
+- инкапсулируют бизнес-логику
+- координируют работу правил (rules) и репозиториев (repositories)
+- не содержат зависимостей от FastAPI (чистая логика)
 
-Назначение:
------------
-Содержит основные бизнес-сервисы, которые объединяют:
-- репозитории данных (db.repositories),
-- доменные правила (domain.rules),
-- события (domain.events).
-
-Каждый сервис отвечает за конкретный аспект платформы:
--------------------------------------------------------
-• UserService       — управление пользователями, профилем и статусом.
-• BalanceService    — операции с балансом, начисления и списания.
-• PaymentService    — работа с внешними и внутренними платежами.
-• OrderService      — управление заказами, подтверждения и завершения.
-• TaskService       — задания, выполнение и вознаграждение.
-• ReferralService   — бонусы и уровни реферальной программы.
-
-Принципы:
-----------
-1. Асинхронное исполнение.
-2. Правила → проверка условий (`domain.rules`).
-3. Репозитории → изменение состояния (`db.repositories`).
-4. События → реакция и интеграция (`domain.events`).
-5. Чистая архитектура: логика изолирована от API и ORM.
-
-Пример использования:
----------------------
-from domain.services import BalanceService
-
-service = BalanceService(session)
-await service.withdraw(user_id=1, amount=50000)
+Сервисы:
+- HealthService — системная проверка статуса
+- StatsService — статистика платформы
+- UserService, PaymentService, BalanceService и др.
 """
 
-from domain.services.base import BaseService
-from domain.services.user_service import UserService
-from domain.services.balance_service import BalanceService
-from domain.services.payment_service import PaymentService
-from domain.services.order_service import OrderService
-from domain.services.task_service import TaskService
-from domain.services.referral_service import ReferralService
+from .health_service import HealthService
+from .stats_service import StatsService
+from .user_service import UserService
+from .payment_service import PaymentService
+from .balance_service import BalanceService
+from .order_service import OrderService
+from .task_service import TaskService
+from .referral_service import ReferralService
 
 __all__ = [
-    # Базовый слой
-    "BaseService",
-
-    # Конкретные сервисы
+    "HealthService",
+    "StatsService",
     "UserService",
-    "BalanceService",
     "PaymentService",
+    "BalanceService",
     "OrderService",
     "TaskService",
     "ReferralService",
