@@ -55,16 +55,18 @@ async def init_app() -> None:
         logger.error(f"❌ Redis connection failed: {e}")
 
     # -------------------------------------------------
-    # 🤖 Проверка Telegram Bot
+    # 🔹 Проверка Telegram Bot
     # -------------------------------------------------
     try:
-        tg = TelegramClient(settings.TELEGRAM_BOT_TOKEN)
-        me = await tg.get_me()
-        logger.info(f"🤖 Telegram Bot connected: @{me.username} (id={me.id})")
+        me = await telegram_client.get_me()
+        username = me.get("username", "unknown")
+        bot_id = me.get("id", "N/A")
+        logger.info(f"🤖 Telegram bot connected: @{username} (id={bot_id})")
         telegram_ok = True
     except Exception as e:
-        logger.warning(f"⚠️ Telegram bot check skipped or failed: {e}")
         telegram_ok = False
+        logger.warning(f"⚠️ Telegram bot check skipped or failed: {e}")
+
 
     # -------------------------------------------------
     # 🧩 Финальный отчёт
