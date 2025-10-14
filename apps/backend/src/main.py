@@ -30,14 +30,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 # -------------------------------------------------
-# 🔹 Добавляем путь к Telegram Bot
+# 🔹 Настройка путей (универсально для Railway и локали)
 # -------------------------------------------------
-BOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bot"))
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if BACKEND_ROOT not in sys.path:
+    sys.path.append(BACKEND_ROOT)
+
+BOT_PATH = os.path.join(BACKEND_ROOT, "bot")
 if BOT_PATH not in sys.path:
     sys.path.append(BOT_PATH)
 
+# -------------------------------------------------
+# 🔹 Попытка импортировать Telegram Bot
+# -------------------------------------------------
 try:
-    from bot.app.service.bot_service import *  # основной модуль бота
+    from bot.app.service.bot_service import *  # type: ignore
     logger.info("🤖 Telegram Bot module loaded successfully.")
 except Exception as e:
     logger.warning(f"⚠️ Telegram Bot module not loaded: {e}")
@@ -52,7 +59,7 @@ from core.logging import setup_logging
 from db.base import Base
 
 # -------------------------------------------------
-# 🔹 Инициализация FastAPI
+# 🔹 Инициализация FastAPI-приложения
 # -------------------------------------------------
 app = FastAPI(
     title="Uzinex Boost API",
@@ -74,13 +81,13 @@ app.add_middleware(
 )
 
 # -------------------------------------------------
-# 🔹 Логирование и стартовое сообщение
+# 🔹 Логирование и запуск
 # -------------------------------------------------
 setup_logging()
 logger.info("🚀 Starting Uzinex Boost API v2.0...")
 
 # -------------------------------------------------
-# 🔹 Подключение маршрутов
+# 🔹 Подключение маршрутов API
 # -------------------------------------------------
 try:
     from api.v1.routes import router as api_router
@@ -98,7 +105,6 @@ async def on_startup():
     logger.info("🔧 Initializing Uzinex Boost backend components...")
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
-
     await init_app()
     logger.success("✅ Application startup completed.")
 
@@ -111,7 +117,7 @@ async def on_shutdown():
     logger.success("🛑 Application stopped gracefully.")
 
 # -------------------------------------------------
-# 🔹 Корневой маршрут (Healthcheck)
+# 🔹 Healthcheck Endpoint
 # -------------------------------------------------
 @app.get("/", tags=["System"])
 async def root():
