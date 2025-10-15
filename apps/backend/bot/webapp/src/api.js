@@ -69,6 +69,32 @@ export async function authWithTelegram(initData, overrideBotToken) {
   return payload;
 }
 
+export async function authWithMockUser(params = {}) {
+  const { mockAuthEndpoint = '/telegram/auth/mock' } = getConfig();
+  if (!mockAuthEndpoint) {
+    throw new Error('Mock-эндпоинт авторизации не сконфигурирован.');
+  }
+
+  const sanitizedParams = {};
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+    sanitizedParams[key] = value;
+  });
+
+  const url = buildUrl(mockAuthEndpoint, sanitizedParams);
+  const response = await fetch(url.toString(), { method: 'POST' });
+  const payload = await parseJson(response);
+
+  if (!response.ok || !payload?.ok) {
+    const detail = payload?.detail || payload?.message || 'Mock-авторизация WebApp не удалась';
+    throw new Error(detail);
+  }
+
+  return payload;
+}
+
 export async function apiRequest(path, options = {}) {
   const { method = 'GET', body, params, headers = {} } = options;
   const url = buildUrl(path, params);

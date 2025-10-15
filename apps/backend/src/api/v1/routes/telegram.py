@@ -21,6 +21,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException, status, Query
 from adapters.telegram.webhook import telegram_webhook
 from api.v1.deps import get_bot_service
 from bot.app.service import BotService, NotificationDeliveryError, WebAppAuthError
+from core.config import settings
 
 logger = logging.getLogger("uzinex.api.telegram")
 
@@ -63,6 +64,41 @@ async def telegram_webapp_auth(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover - defensive branch
         logger.exception("[Telegram] WebApp auth failed")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+@router.post("/auth/mock", response_model=Dict[str, Any])
+async def telegram_webapp_auth_mock(
+    telegram_id: int | None = Query(None, description="Telegram ID тестового пользователя"),
+    username: str | None = Query(None, description="Username тестового пользователя"),
+    first_name: str | None = Query(None, description="Имя (first_name) пользователя"),
+    last_name: str | None = Query(None, description="Фамилия (last_name) пользователя"),
+    language: str | None = Query(None, description="Код языка пользователя"),
+    language_code_param: str | None = Query(None, description="Alias для language", alias="language_code"),
+    bot_service: BotService = Depends(get_bot_service),
+):
+    """🧪 Создаёт авторизационную сессию WebApp без Telegram initData (debug-режим)."""
+
+    if not settings.TELEGRAM_DEBUG_MODE:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mock WebApp auth is disabled")
+
+    try:
+        auth_result = await bot_service.create_debug_session(
+            telegram_id=telegram_id,
+            username=username,
+            first_name=first_name,
+            last_name=last_name,
+            language_code=language_code_param or language,
+        )
+        logger.info(
+            "[Telegram] Mock WebApp auth issued for telegram_id=%s",
+            auth_result.user.telegram_id,
+        )
+        return auth_result.to_dict()
+    except WebAppAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - defensive branch
+        logger.exception("[Telegram] Mock WebApp auth failed")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
 
 

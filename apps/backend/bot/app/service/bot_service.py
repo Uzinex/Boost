@@ -116,6 +116,64 @@ class BotService:
             raw_payload=raw_payload,
         )
 
+    async def create_debug_session(
+        self,
+        *,
+        telegram_id: int | None = None,
+        username: str | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+        language_code: str | None = None,
+    ) -> WebAppAuthResult:
+        """Создаёт сессию WebApp без ``initData`` (используется только в debug-режиме)."""
+
+        if not settings.TELEGRAM_DEBUG_MODE:
+            raise WebAppAuthError("Debug WebApp auth is disabled")
+
+        resolved_telegram_id = telegram_id or settings.TELEGRAM_DEBUG_DEFAULT_USER_ID
+        if not resolved_telegram_id:
+            raise WebAppAuthError("telegram_id is required for debug session")
+
+        resolved_username = username or settings.TELEGRAM_DEBUG_DEFAULT_USERNAME
+        resolved_first_name = first_name or settings.TELEGRAM_DEBUG_DEFAULT_FIRST_NAME
+        resolved_last_name = last_name or settings.TELEGRAM_DEBUG_DEFAULT_LAST_NAME
+        resolved_language = language_code or settings.TELEGRAM_DEBUG_DEFAULT_LANGUAGE
+
+        user = await self.user_repository.upsert_from_telegram(
+            resolved_telegram_id,
+            username=resolved_username,
+            first_name=resolved_first_name,
+            last_name=resolved_last_name,
+            language_code=resolved_language,
+        )
+
+        token_payload = build_user_payload(user.id, user.username)
+        session_token = create_session_token(token_payload)
+        snapshot = self._build_snapshot(user)
+
+        self.logger.info(
+            "[BotService] Debug WebApp auth for telegram_id=%s (user_id=%s)",
+            snapshot.telegram_id,
+            snapshot.id,
+        )
+
+        raw_payload = {
+            "mode": "debug",
+            "user": {
+                "id": snapshot.telegram_id,
+                "username": snapshot.username,
+                "first_name": snapshot.first_name,
+                "last_name": snapshot.last_name,
+                "language_code": snapshot.language_code,
+            },
+        }
+
+        return WebAppAuthResult(
+            session_token=session_token,
+            user=snapshot,
+            raw_payload=raw_payload,
+        )
+
     # ------------------------------------------------------------------
     # 🔔  Notifications
     # ------------------------------------------------------------------

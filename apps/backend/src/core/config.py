@@ -67,6 +67,30 @@ class Settings(BaseSettings):
     # --- 🤖 Telegram ---
     TELEGRAM_BOT_TOKEN: str = Field("YOUR_TELEGRAM_BOT_TOKEN", description="Токен Telegram бота")
     TELEGRAM_WEBHOOK_URL: str | None = Field(None, description="Webhook URL для Telegram API")
+    TELEGRAM_DEBUG_MODE: bool = Field(
+        default_factory=lambda: os.getenv("APP_ENV", "production") != "production",
+        description="Режим отладки Telegram (позволяет мок-авторизацию WebApp)",
+    )
+    TELEGRAM_DEBUG_DEFAULT_USER_ID: int = Field(
+        999_000_000,
+        description="ID пользователя по умолчанию для мок-авторизации (debug)",
+    )
+    TELEGRAM_DEBUG_DEFAULT_USERNAME: str = Field(
+        "boost_demo",
+        description="Username по умолчанию для мок-авторизации WebApp",
+    )
+    TELEGRAM_DEBUG_DEFAULT_FIRST_NAME: str = Field(
+        "Boost",
+        description="Имя (first_name) по умолчанию для мок-авторизации",
+    )
+    TELEGRAM_DEBUG_DEFAULT_LAST_NAME: str = Field(
+        "Tester",
+        description="Фамилия (last_name) по умолчанию для мок-авторизации",
+    )
+    TELEGRAM_DEBUG_DEFAULT_LANGUAGE: str = Field(
+        "ru",
+        description="Код языка по умолчанию для мок-авторизации",
+    )
 
     # --- 💰 Business Logic ---
     UZT_TO_SUM_RATE: float = Field(75.0, description="Курс конвертации 1 UZT в сум")
@@ -76,7 +100,6 @@ class Settings(BaseSettings):
 
     # --- 🧩 Misc ---
     RAILWAY_MODE: bool = Field(False, description="Флаг запуска в Railway")
-    TELEGRAM_DEBUG_MODE: bool = Field(False, description="Режим отладки Telegram")
     TIMEZONE: str = Field("Asia/Tashkent", description="Часовой пояс сервера")
 
     class Config:

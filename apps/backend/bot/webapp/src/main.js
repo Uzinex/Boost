@@ -1,5 +1,6 @@
 import {
   state,
+  getConfig,
   setSessionToken,
   setUser,
   setProfile,
@@ -12,7 +13,7 @@ import {
   setPayments,
   setReferrals,
 } from './state.js';
-import { api, authWithTelegram, setAuthToken } from './api.js';
+import { api, authWithTelegram, authWithMockUser, setAuthToken } from './api.js';
 import {
   switchView,
   updateUserChip,
@@ -36,7 +37,67 @@ function resolveInitData() {
     return tg.initData;
   }
   const params = new URLSearchParams(window.location.search);
-  return params.get('init_data') || params.get('tgWebAppData') || params.get('mockInitData') || '';
+  const direct = params.get('init_data') || params.get('tgWebAppData') || params.get('mockInitData');
+  if (direct) {
+    return direct;
+  }
+  const configInit = getConfig().mockInitData;
+  return typeof configInit === 'string' ? configInit : '';
+}
+
+function parseBooleanFlag(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+}
+
+function shouldUseMockAuth(searchParams, config) {
+  if (!config) {
+    return false;
+  }
+
+  const explicitMock =
+    parseBooleanFlag(searchParams.get('mock')) ||
+    parseBooleanFlag(searchParams.get('debug')) ||
+    parseBooleanFlag(searchParams.get('useMockAuth'));
+
+  if (explicitMock) {
+    return true;
+  }
+
+  return Boolean(config.mockAuthEnabled);
+}
+
+function buildMockAuthParams(searchParams, config) {
+  const baseUser = config && typeof config.mockAuthUser === 'object' ? config.mockAuthUser : {};
+  const baseParams = config && typeof config.mockAuthParams === 'object' ? config.mockAuthParams : {};
+
+  const overrides = {};
+  const telegramId = searchParams.get('telegram_id') || searchParams.get('user_id');
+  if (telegramId) {
+    const parsedId = Number(telegramId);
+    if (!Number.isNaN(parsedId)) {
+      overrides.telegram_id = parsedId;
+    }
+  }
+
+  if (searchParams.get('username')) {
+    overrides.username = searchParams.get('username');
+  }
+  if (searchParams.get('first_name')) {
+    overrides.first_name = searchParams.get('first_name');
+  }
+  if (searchParams.get('last_name')) {
+    overrides.last_name = searchParams.get('last_name');
+  }
+
+  const languageOverride = searchParams.get('language_code') || searchParams.get('language');
+  if (languageOverride) {
+    overrides.language_code = languageOverride;
+  }
+
+  return { ...baseParams, ...baseUser, ...overrides };
 }
 
 function composeDisplayName(user) {
@@ -82,8 +143,13 @@ async function bootstrap() {
       });
     }
 
+    const searchParams = new URLSearchParams(window.location.search);
+    const config = getConfig();
     const initData = resolveInitData();
-    if (!initData) {
+    const useMockAuth = !initData && shouldUseMockAuth(searchParams, config);
+    const overrideBotToken = searchParams.get('bot_token') || searchParams.get('botToken') || undefined;
+
+    if (!initData && !useMockAuth) {
       showToast({
         type: 'warning',
         title: 'Нужен initData',
@@ -93,7 +159,10 @@ async function bootstrap() {
       return;
     }
 
-    const authPayload = await authWithTelegram(initData);
+    const authPayload = initData
+      ? await authWithTelegram(initData, overrideBotToken)
+      : await authWithMockUser(buildMockAuthParams(searchParams, config));
+
     const userSnapshot = authPayload.user || {};
     setSessionToken(authPayload.session_token);
     setAuthToken(authPayload.session_token);
@@ -103,6 +172,15 @@ async function bootstrap() {
     await loadInitialData();
     bindEvents();
     switchView('dashboard');
+
+    if (useMockAuth) {
+      showToast({
+        type: 'info',
+        title: 'Демо-режим',
+        message: 'Используется тестовый Telegram-профиль (mock auth).',
+        duration: 5000,
+      });
+    }
   } catch (error) {
     console.error(error);
     showToast({ type: 'error', title: 'Ошибка', message: error.message || 'Не удалось запустить WebApp' });
