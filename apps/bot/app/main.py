@@ -5,6 +5,7 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from .config import settings
@@ -26,7 +27,10 @@ async def main() -> None:
     setup_logging()
     logger = logging.getLogger("boost.bot")
 
-    bot = Bot(token=settings.bot_token, parse_mode=ParseMode.HTML)
+    bot = Bot(
+        token=settings.bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
     api_client = BoostAPIClient(
         base_url=settings.backend_url,
         token=settings.backend_token,
