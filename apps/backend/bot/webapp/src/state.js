@@ -2,6 +2,17 @@ const DEFAULT_CONFIG = {
   apiBaseUrl: '/api/v1',
   botToken: '',
   locale: 'ru',
+  mockInitData: '',
+  mockAuthEnabled: true,
+  mockAuthEndpoint: '/telegram/auth/mock',
+  mockAuthUser: {
+    telegram_id: 999000000,
+    username: 'boost_demo',
+    first_name: 'Boost',
+    last_name: 'Tester',
+    language_code: 'ru',
+  },
+  mockAuthParams: {},
 };
 
 function parseEmbeddedConfig() {
@@ -18,10 +29,23 @@ function parseEmbeddedConfig() {
 }
 
 function normalizeConfig(config) {
-  const normalized = { ...DEFAULT_CONFIG, ...config };
-  if (normalized.apiBaseUrl.endsWith('/')) {
+  const merged = { ...DEFAULT_CONFIG, ...(config || {}) };
+  const normalized = { ...merged };
+
+  if (typeof normalized.apiBaseUrl === 'string' && normalized.apiBaseUrl.endsWith('/')) {
     normalized.apiBaseUrl = normalized.apiBaseUrl.slice(0, -1);
   }
+
+  const defaultMockUser = DEFAULT_CONFIG.mockAuthUser || {};
+  const providedMockUser =
+    merged && typeof merged.mockAuthUser === 'object' && merged.mockAuthUser ? merged.mockAuthUser : {};
+  normalized.mockAuthUser = { ...defaultMockUser, ...providedMockUser };
+
+  const defaultMockParams = DEFAULT_CONFIG.mockAuthParams || {};
+  const providedMockParams =
+    merged && typeof merged.mockAuthParams === 'object' && merged.mockAuthParams ? merged.mockAuthParams : {};
+  normalized.mockAuthParams = { ...defaultMockParams, ...providedMockParams };
+
   return normalized;
 }
 
