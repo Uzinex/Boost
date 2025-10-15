@@ -27,13 +27,9 @@ function formatCurrency(value) {
 }
 
 function formatDateTime(value) {
-  if (!value) {
-    return '';
-  }
+  if (!value) return '';
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
+  if (Number.isNaN(date.getTime())) return '';
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
     month: 'short',
@@ -62,15 +58,20 @@ export function switchView(viewId) {
 
 export function updateUserChip({ name, balance }) {
   setText('chip-name', name || '—');
-  setText('chip-balance', formatCurrency(balance));
+  setText('chip-balance', formatCurrency(balance ?? 0));
 }
 
 export function renderDashboard({ balance, totalEarned, ordersCount, referralsCount, tasks, history }) {
-  // ✅ Исправлено: теперь всегда отображаются числа, даже если null / undefined
-  setText('metric-balance', formatCurrency(balance ?? 0));
-  setText('metric-earned', formatCurrency(totalEarned ?? 0));
-  setText('metric-orders', formatNumber(ordersCount ?? 0));
-  setText('metric-referrals', formatNumber(referralsCount ?? 0));
+  // ✅ Гарантируем, что в карточках всегда отображаются числа
+  balance = Number(balance ?? 0);
+  totalEarned = Number(totalEarned ?? 0);
+  ordersCount = Number(ordersCount ?? 0);
+  referralsCount = Number(referralsCount ?? 0);
+
+  setText('metric-balance', formatCurrency(balance));
+  setText('metric-earned', formatCurrency(totalEarned));
+  setText('metric-orders', formatNumber(ordersCount));
+  setText('metric-referrals', formatNumber(referralsCount));
 
   const listEl = document.getElementById('dashboard-tasks');
   const emptyEl = document.getElementById('dashboard-tasks-empty');
@@ -251,8 +252,8 @@ export function renderProfileSummary(profile, stats) {
   const summary = document.getElementById('profile-summary');
   if (!summary) return;
 
-  const balance = stats?.balance ?? profile?.balance;
-  const totalEarned = stats?.totalEarned;
+  const balance = Number(stats?.balance ?? profile?.balance ?? 0);
+  const totalEarned = Number(stats?.totalEarned ?? 0);
   summary.innerHTML = `
     <dt>ID</dt>
     <dd>${profile?.id ?? '—'}</dd>
@@ -261,9 +262,9 @@ export function renderProfileSummary(profile, stats) {
     <dt>Язык</dt>
     <dd>${profile?.language ?? 'ru'}</dd>
     <dt>Баланс</dt>
-    <dd>${formatCurrency(balance ?? 0)}</dd>
+    <dd>${formatCurrency(balance)}</dd>
     <dt>Заработано</dt>
-    <dd>${formatCurrency(totalEarned ?? 0)}</dd>
+    <dd>${formatCurrency(totalEarned)}</dd>
   `;
 }
 
