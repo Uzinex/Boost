@@ -242,6 +242,54 @@ function renderAll() {
   });
 }
 
-// остальные функции (bindEvents, refreshBalance и т.д.) без изменений...
+function bindEvents() {
+  const navButtons = Array.from(document.querySelectorAll('.nav-btn'));
+  navButtons.forEach((btn) => {
+    btn.addEventListener('click', (event) => {
+      const view = event.currentTarget?.dataset?.view;
+      if (view) {
+        switchView(view);
+      }
+    });
+  });
+
+  const viewToggles = Array.from(document.querySelectorAll('[data-view-target]'));
+  viewToggles.forEach((el) => {
+    el.addEventListener('click', (event) => {
+      const view = event.currentTarget?.dataset?.viewTarget;
+      if (view) {
+        switchView(view);
+      }
+    });
+  });
+
+  const openPayments = document.getElementById('open-payments-view');
+  if (openPayments) {
+    openPayments.addEventListener('click', () => switchView('payments'));
+  }
+
+  const refreshButtons = [
+    document.getElementById('refresh-dashboard-tasks'),
+    document.getElementById('refresh-dashboard-history'),
+  ].filter(Boolean);
+
+  refreshButtons.forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      setLoading(btn, true);
+      try {
+        await loadInitialData();
+      } catch (error) {
+        console.error('[Boost] refresh failed', error);
+        showToast({
+          type: 'error',
+          title: 'Ошибка обновления',
+          message: error.message || 'Не удалось обновить данные',
+        });
+      } finally {
+        setLoading(btn, false);
+      }
+    });
+  });
+}
 
 document.addEventListener('DOMContentLoaded', bootstrap);
