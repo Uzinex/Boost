@@ -28,6 +28,7 @@ import {
   showToast,
   applyThemeFromTelegram,
   setLoading,
+  toNumber,
 } from './ui.js';
 
 const tg = window.Telegram?.WebApp;
@@ -213,18 +214,19 @@ async function loadInitialData() {
 /* ✅ Исправлено — теперь все числовые значения гарантированно отображаются */
 function renderAll() {
   const profile = state.profile || {};
-  const totalEarned = Number(
-    state.stats.user?.total_earned_uzt ?? state.stats.user?.totalEarned ?? 0
+  const totalEarned = toNumber(
+    state.stats.user?.total_earned_uzt ?? state.stats.user?.totalEarned ?? 0,
+    0
   );
   const referralsCount = Array.isArray(state.referrals) ? state.referrals.length : 0;
   const ordersCount = Array.isArray(state.orders) ? state.orders.length : 0;
-  const balance = Number(state.balance ?? profile.balance ?? 0);
+  const balance = toNumber(state.balance ?? profile.balance ?? 0, 0);
 
   renderDashboard({
-    balance: balance || 0,
-    totalEarned: totalEarned || 0,
-    ordersCount: ordersCount || 0,
-    referralsCount: referralsCount || 0,
+    balance: balance,
+    totalEarned: totalEarned,
+    ordersCount: ordersCount,
+    referralsCount: referralsCount,
     tasks: state.tasks || [],
     history: buildHistoryEvents() || [],
   });
