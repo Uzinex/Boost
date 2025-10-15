@@ -146,6 +146,10 @@ async function bootstrap() {
     setUser(userSnapshot);
     updateUserChip({ name: composeDisplayName(userSnapshot), balance: userSnapshot.balance });
 
+    // ⚡️ Обновляем интерфейс базовыми значениями до загрузки данных,
+    // чтобы избавиться от «прочерков» в карточках при медленном ответе API.
+    renderAll();
+
     await loadInitialData();
     bindEvents();
     switchView('dashboard');
@@ -204,10 +208,12 @@ async function loadInitialData() {
       public: publicStatsResp?.data || null,
     });
 
-    renderAll();
   } catch (error) {
     console.error('[Boost] loadInitialData failed', error);
     showToast({ type: 'error', title: 'Ошибка загрузки', message: error.message });
+  } finally {
+    // ✅ Даже при ошибке гарантирум актуальный рендер (с прежними или дефолтными данными)
+    renderAll();
   }
 }
 
