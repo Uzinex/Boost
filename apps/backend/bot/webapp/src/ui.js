@@ -6,22 +6,24 @@ function formatNumber(value, options = {}) {
     maximumFractionDigits: 2,
     minimumFractionDigits: options.minimumFractionDigits ?? 0,
   });
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return '—';
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) {
+    return formatter.format(0);
   }
-  return formatter.format(Number(value));
+  return formatter.format(numericValue);
 }
 
 function formatCurrency(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return '—';
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) {
+    return '0,00 UZT';
   }
   const formatter = new Intl.NumberFormat('ru-RU', {
     style: 'decimal',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${formatter.format(Number(value))} UZT`;
+  return `${formatter.format(numericValue)} UZT`;
 }
 
 function formatDateTime(value) {
@@ -60,7 +62,7 @@ export function switchView(viewId) {
 
 export function updateUserChip({ name, balance }) {
   setText('chip-name', name || '—');
-  setText('chip-balance', typeof balance === 'number' ? formatCurrency(balance) : `${balance ?? '—'} UZT`);
+  setText('chip-balance', formatCurrency(balance));
 }
 
 export function renderDashboard({ balance, totalEarned, ordersCount, referralsCount, tasks, history }) {
