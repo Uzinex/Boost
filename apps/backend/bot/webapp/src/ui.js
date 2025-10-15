@@ -1,18 +1,62 @@
 const navButtons = () => Array.from(document.querySelectorAll('.nav-btn'));
 const views = () => Array.from(document.querySelectorAll('.view'));
 
+export function toNumber(value, fallback = 0) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value ? 1 : 0;
+  }
+
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value
+      .replace(/\s+/g, '')
+      .replace(/,/g, '.')
+      .replace(/[^0-9.+-]/g, '');
+
+    if (!normalized) {
+      return fallback;
+    }
+
+    const parsed = Number(normalized);
+    return Number.isNaN(parsed) ? fallback : parsed;
+  }
+
+  if (typeof value === 'object') {
+    try {
+      const candidate = value.valueOf();
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+        return candidate;
+      }
+      if (typeof candidate === 'string') {
+        return toNumber(candidate, fallback);
+      }
+    } catch (error) {
+      // ignore and fallback to generic conversion below
+    }
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
 function formatNumber(value, options = {}) {
-  const num = Number(value);
+  const num = toNumber(value, 0);
   const formatter = new Intl.NumberFormat('ru-RU', {
     maximumFractionDigits: 2,
     minimumFractionDigits: options.minimumFractionDigits ?? 0,
   });
-  return formatter.format(Number.isNaN(num) ? 0 : num);
+  return formatter.format(num);
 }
 
 function formatCurrency(value) {
-  const num = Number(value);
-  if (Number.isNaN(num)) return '0,00 UZT';
+  const num = toNumber(value, 0);
   const f = new Intl.NumberFormat('ru-RU', {
     style: 'decimal',
     minimumFractionDigits: 2,
@@ -71,10 +115,10 @@ export function updateUserChip({ name, balance }) {
 
 export function renderDashboard({ balance, totalEarned, ordersCount, referralsCount, tasks, history }) {
   // 🔹 всегда преобразуем в числа
-  balance = Number(balance ?? 0);
-  totalEarned = Number(totalEarned ?? 0);
-  ordersCount = Number(ordersCount ?? 0);
-  referralsCount = Number(referralsCount ?? 0);
+  balance = toNumber(balance, 0);
+  totalEarned = toNumber(totalEarned, 0);
+  ordersCount = toNumber(ordersCount, 0);
+  referralsCount = toNumber(referralsCount, 0);
 
   // 🔹 жёстко обновляем карточки
   setText('metric-balance', formatCurrency(balance));
