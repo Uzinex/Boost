@@ -66,10 +66,11 @@ export function updateUserChip({ name, balance }) {
 }
 
 export function renderDashboard({ balance, totalEarned, ordersCount, referralsCount, tasks, history }) {
-  setText('metric-balance', formatCurrency(balance));
-  setText('metric-earned', formatCurrency(totalEarned));
-  setText('metric-orders', formatNumber(ordersCount));
-  setText('metric-referrals', formatNumber(referralsCount));
+  // ✅ Исправлено: теперь всегда отображаются числа, даже если null / undefined
+  setText('metric-balance', formatCurrency(balance ?? 0));
+  setText('metric-earned', formatCurrency(totalEarned ?? 0));
+  setText('metric-orders', formatNumber(ordersCount ?? 0));
+  setText('metric-referrals', formatNumber(referralsCount ?? 0));
 
   const listEl = document.getElementById('dashboard-tasks');
   const emptyEl = document.getElementById('dashboard-tasks-empty');
@@ -80,12 +81,13 @@ export function renderDashboard({ balance, totalEarned, ordersCount, referralsCo
       const template = document.getElementById('task-item-template');
       tasks.slice(0, 5).forEach((task) => {
         const clone = template?.content.firstElementChild?.cloneNode(true);
-        if (!clone) {
-          return;
-        }
+        if (!clone) return;
         clone.dataset.taskId = task.id;
-        clone.querySelector('.list__title').textContent = task.title || task.name || `Задание #${task.id}`;
-        clone.querySelector('.list__meta').textContent = `${task.reward ?? task.price ?? 0} UZT • ${task.category || task.type || 'Задание'}`;
+        clone.querySelector('.list__title').textContent =
+          task.title || task.name || `Задание #${task.id}`;
+        clone.querySelector('.list__meta').textContent = `${task.reward ?? task.price ?? 0} UZT • ${
+          task.category || task.type || 'Задание'
+        }`;
         const button = clone.querySelector('button');
         if (button) {
           button.textContent = 'Открыть';
@@ -108,11 +110,11 @@ export function renderDashboard({ balance, totalEarned, ordersCount, referralsCo
       const template = document.getElementById('history-item-template');
       history.slice(0, 6).forEach((item) => {
         const clone = template?.content.firstElementChild?.cloneNode(true);
-        if (!clone) {
-          return;
-        }
-        clone.querySelector('.timeline__time').textContent = formatDateTime(item.date) || '—';
-        clone.querySelector('.timeline__title').textContent = item.title || 'Операция';
+        if (!clone) return;
+        clone.querySelector('.timeline__time').textContent =
+          formatDateTime(item.date) || '—';
+        clone.querySelector('.timeline__title').textContent =
+          item.title || 'Операция';
         clone.querySelector('.timeline__meta').textContent = item.meta || '';
         historyContainer.appendChild(clone);
       });
@@ -133,12 +135,13 @@ export function renderTasks(tasks) {
     const template = document.getElementById('task-item-template');
     tasks.forEach((task) => {
       const clone = template?.content.firstElementChild?.cloneNode(true);
-      if (!clone) {
-        return;
-      }
+      if (!clone) return;
       clone.dataset.taskId = task.id;
-      clone.querySelector('.list__title').textContent = task.title || task.name || `Задание #${task.id}`;
-      clone.querySelector('.list__meta').textContent = `${task.reward ?? task.price ?? 0} UZT • ${task.description || ''}`.trim();
+      clone.querySelector('.list__title').textContent =
+        task.title || task.name || `Задание #${task.id}`;
+      clone.querySelector('.list__meta').textContent = `${task.reward ?? task.price ?? 0} UZT • ${
+        task.description || ''
+      }`.trim();
       const button = clone.querySelector('button');
       if (button) {
         button.textContent = 'Выполнить';
@@ -168,7 +171,9 @@ export function renderTaskHistory(history) {
       title.textContent = item.title || item.name || `Задание #${item.id}`;
       const meta = document.createElement('p');
       meta.className = 'list__meta';
-      meta.textContent = `${formatDateTime(item.completed_at || item.created_at)} • +${item.reward ?? 0} UZT`;
+      meta.textContent = `${formatDateTime(item.completed_at || item.created_at)} • +${
+        item.reward ?? 0
+      } UZT`;
       li.append(title, meta);
       list.appendChild(li);
     });
@@ -193,10 +198,22 @@ export function renderOrders(orders) {
         <span>${order.order_type || order.type || '—'}</span>
         <span>${order.target_url || order.link || '—'}</span>
         <span>${order.status || '—'}</span>
-        <span>${order.progress ? `${order.progress}%` : `${order.completed_actions || 0}/${order.quantity || order.target_quantity || 0}`}</span>
-        <span>${order.total_cost ? formatCurrency(order.total_cost) : formatCurrency(order.cost || 0)}</span>
+        <span>${
+          order.progress
+            ? `${order.progress}%`
+            : `${order.completed_actions || 0}/${order.quantity || order.target_quantity || 0}`
+        }</span>
+        <span>${
+          order.total_cost
+            ? formatCurrency(order.total_cost)
+            : formatCurrency(order.cost || 0)
+        }</span>
         <span class="table__actions">
-          ${order.status === 'active' || order.status === 'pending' ? `<button class="btn btn--ghost" data-action="cancel-order" data-order-id="${order.id}">Отменить</button>` : ''}
+          ${
+            order.status === 'active' || order.status === 'pending'
+              ? `<button class="btn btn--ghost" data-action="cancel-order" data-order-id="${order.id}">Отменить</button>`
+              : ''
+          }
         </span>
       `;
       table.appendChild(row);
@@ -274,12 +291,14 @@ export function renderReferrals(referrals) {
     const template = document.getElementById('referral-item-template');
     referrals.forEach((ref) => {
       const clone = template?.content.firstElementChild?.cloneNode(true);
-      if (!clone) {
-        return;
-      }
-      clone.querySelector('.list__title').textContent = ref.username ? `@${ref.username}` : ref.first_name || `Пользователь #${ref.id}`;
+      if (!clone) return;
+      clone.querySelector('.list__title').textContent = ref.username
+        ? `@${ref.username}`
+        : ref.first_name || `Пользователь #${ref.id}`;
       const joined = formatDateTime(ref.joined_at || ref.created_at);
-      clone.querySelector('.list__meta').textContent = `${joined || 'Дата неизвестна'} • ${formatCurrency(ref.total_earned ?? ref.balance ?? 0)}`;
+      clone.querySelector('.list__meta').textContent = `${joined || 'Дата неизвестна'} • ${formatCurrency(
+        ref.total_earned ?? ref.balance ?? 0
+      )}`;
       list.appendChild(clone);
     });
   } else {
@@ -289,9 +308,7 @@ export function renderReferrals(referrals) {
 
 export function showToast({ title, message, type = 'info', duration = 3600 }) {
   const container = document.querySelector('.toast-container');
-  if (!container) {
-    return () => {};
-  }
+  if (!container) return () => {};
   const toast = document.createElement('div');
   toast.className = `toast toast--${type}`;
 
