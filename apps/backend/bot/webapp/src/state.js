@@ -15,17 +15,47 @@ const DEFAULT_CONFIG = {
   mockAuthParams: {},
 };
 
-function parseEmbeddedConfig() {
-  const node = document.getElementById('boost-config');
-  if (!node) {
-    return {};
-  }
+function parseJsonScript(id) {
+  const node = document.getElementById(id);
+  if (!node) return null;
   try {
-    return JSON.parse(node.textContent || '{}');
+    const content = node.textContent?.trim();
+    if (!content) return null;
+    return JSON.parse(content);
   } catch (error) {
-    console.warn('[Boost] Failed to parse embedded config', error);
+    console.warn(`[Boost] Failed to parse ${id} JSON`, error);
+    return null;
+  }
+}
+
+function parseEmbeddedConfig() {
+  return parseJsonScript('boost-config') || {};
+}
+
+function parseEmbeddedSnapshot() {
+  const raw = parseJsonScript('boost-snapshot');
+  if (!raw || typeof raw !== 'object') {
     return {};
   }
+
+  const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+  return {
+    user: raw.user ?? null,
+    profile: raw.profile ?? null,
+    balance: raw.balance ?? raw.profile?.balance ?? null,
+    stats: {
+      public: raw.stats?.public ?? raw.publicStats ?? null,
+      user: raw.stats?.user ?? raw.userStats ?? null,
+      orders: raw.stats?.orders ?? raw.orderStats ?? null,
+    },
+    tasks: ensureArray(raw.tasks ?? raw.activeTasks),
+    taskHistory: ensureArray(raw.taskHistory ?? raw.tasksHistory),
+    orders: ensureArray(raw.orders ?? raw.ordersHistory),
+    payments: ensureArray(raw.payments ?? raw.paymentHistory),
+    balanceHistory: ensureArray(raw.balanceHistory ?? raw.transactions),
+    referrals: ensureArray(raw.referrals ?? raw.invitedUsers),
+  };
 }
 
 function normalizeConfig(config) {
@@ -50,24 +80,25 @@ function normalizeConfig(config) {
 }
 
 const windowConfig = typeof window !== 'undefined' && window.__BOOST_CONFIG ? window.__BOOST_CONFIG : {};
+const embeddedSnapshot = parseEmbeddedSnapshot();
 
 export const state = {
   config: normalizeConfig({ ...parseEmbeddedConfig(), ...windowConfig }),
   sessionToken: null,
-  user: null,
-  profile: null,
+  user: embeddedSnapshot.user ?? null,
+  profile: embeddedSnapshot.profile ?? null,
   stats: {
-    public: null,
-    user: null,
-    orders: null,
+    public: embeddedSnapshot.stats?.public ?? null,
+    user: embeddedSnapshot.stats?.user ?? null,
+    orders: embeddedSnapshot.stats?.orders ?? null,
   },
-  balance: null,
-  balanceHistory: [],
-  tasks: [],
-  taskHistory: [],
-  orders: [],
-  payments: [],
-  referrals: [],
+  balance: embeddedSnapshot.balance ?? null,
+  balanceHistory: embeddedSnapshot.balanceHistory ?? [],
+  tasks: embeddedSnapshot.tasks ?? [],
+  taskHistory: embeddedSnapshot.taskHistory ?? [],
+  orders: embeddedSnapshot.orders ?? [],
+  payments: embeddedSnapshot.payments ?? [],
+  referrals: embeddedSnapshot.referrals ?? [],
 };
 
 export function getConfig() {

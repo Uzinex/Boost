@@ -120,6 +120,9 @@ async function bootstrap() {
       });
     }
 
+    // 🔹 Сразу отрисовываем предзагруженные данные (если backend их подставил)
+    renderAll();
+
     const searchParams = new URLSearchParams(window.location.search);
     const config = getConfig();
     const initData = resolveInitData();
