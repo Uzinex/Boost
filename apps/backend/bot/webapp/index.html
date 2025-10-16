@@ -36,6 +36,26 @@
         }
       }
     </script>
+
+    <!-- ✅ Предзагруженные данные, которые может подставлять backend (баланс, статистика и т.д.) -->
+    <script id="boost-snapshot" type="application/json">
+      {
+        "user": null,
+        "profile": null,
+        "balance": 0,
+        "stats": {
+          "user": null,
+          "public": null,
+          "orders": null
+        },
+        "tasks": [],
+        "taskHistory": [],
+        "orders": [],
+        "payments": [],
+        "balanceHistory": [],
+        "referrals": []
+      }
+    </script>
   </head>
 
   <body>
@@ -46,8 +66,8 @@
           <p class="app-subtitle">Telegram WebApp · заработок и продвижение</p>
         </div>
         <div class="user-chip" id="user-chip">
-          <span class="user-chip__name" id="chip-name">—</span>
-          <span class="user-chip__balance" id="chip-balance">0 UZT</span>
+          <span class="user-chip__name" id="chip-name">Пользователь</span>
+          <span class="user-chip__balance" id="chip-balance">0,00 UZT</span>
         </div>
       </header>
 
@@ -64,22 +84,22 @@
           <div class="grid grid--cards" id="dashboard-cards">
             <article class="card">
               <h2>Баланс</h2>
-              <p class="metric" id="metric-balance">—</p>
+              <p class="metric" id="metric-balance">0,00 UZT</p>
               <p class="muted">Актуальный баланс в UZT</p>
             </article>
             <article class="card">
               <h2>Заработано</h2>
-              <p class="metric" id="metric-earned">—</p>
+              <p class="metric" id="metric-earned">0,00 UZT</p>
               <p class="muted">Всего начислено за задания</p>
             </article>
             <article class="card">
               <h2>Заказы</h2>
-              <p class="metric" id="metric-orders">—</p>
+              <p class="metric" id="metric-orders">0</p>
               <p class="muted">Активные и завершённые кампании</p>
             </article>
             <article class="card">
               <h2>Рефералы</h2>
-              <p class="metric" id="metric-referrals">—</p>
+              <p class="metric" id="metric-referrals">0</p>
               <p class="muted">Приглашённые пользователи</p>
             </article>
           </div>
