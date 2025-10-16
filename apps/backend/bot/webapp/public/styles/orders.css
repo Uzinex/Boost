@@ -1,0 +1,29 @@
+.orders-summary .card {
+  display: grid;
+  gap: 8px;
+}
+
+.orders-summary .metric {
+  font-size: clamp(24px, 6vw, 36px);
+}
+
+#view-orders .filter-group {
+  justify-content: flex-end;
+}
+
+#view-orders .list__actions {
+  display: flex;
+  gap: 8px;
+}
+
+#view-orders .list__item {
+  align-items: flex-start;
+}
+
+#view-orders .list__title {
+  margin-bottom: 4px;
+}
+
+#view-orders .list__meta {
+  margin: 0;
+}

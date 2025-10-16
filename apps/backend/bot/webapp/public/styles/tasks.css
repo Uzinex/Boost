@@ -1,0 +1,44 @@
+.filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn--chip {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-muted);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  transition: background var(--transition-base), color var(--transition-base), border var(--transition-base);
+}
+
+.btn--chip:hover,
+.btn--chip:focus-visible {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.btn--chip.is-active {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+#view-tasks .panel__actions {
+  align-items: center;
+}
+
+#view-tasks .timeline {
+  margin-top: 8px;
+}
+
+#view-tasks [hidden] {
+  display: none !important;
+}
+
+#view-tasks .list__item button {
+  white-space: nowrap;
+}
