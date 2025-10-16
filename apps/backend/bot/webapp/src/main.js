@@ -361,9 +361,32 @@ function bindEvents() {
 function initViewControllers() {
   const refresh = () => loadInitialData();
   initTasksView({ onRefresh: refresh });
-  initOrdersView({ onRefresh: refresh });
+  initOrdersView({ onRefresh: refresh, onCreateOrder: handleOrderCreate });
   initPaymentsView({ onRefresh: refresh });
   initProfileView({ onRefresh: refresh, onUpdateProfile: handleProfileUpdate });
+}
+
+async function handleOrderCreate({ orderType, targetUrl, quantity }) {
+  const response = await api.createOrder({ orderType, targetUrl, quantity });
+  const created = response?.order || response?.data || response || {};
+  const orderId =
+    created?.id ?? created?.order_id ?? response?.order_id ?? response?.data?.order_id ?? null;
+  const totalCostRaw = created?.total_cost ?? response?.total_cost ?? response?.data?.total_cost;
+  const costNumber = Number(totalCostRaw);
+  const details = [];
+  if (orderId !== null && orderId !== undefined) {
+    details.push(`№${orderId}`);
+  }
+  if (Number.isFinite(costNumber)) {
+    details.push(`Списано ${costNumber.toFixed(2)} UZT`);
+  }
+  showToast({
+    type: 'success',
+    title: 'Заказ создан',
+    message: details.length ? details.join(' • ') : 'Кампания отправлена на модерацию.',
+  });
+  await loadInitialData();
+  return created;
 }
 
 async function handleProfileUpdate({ username, language }) {
