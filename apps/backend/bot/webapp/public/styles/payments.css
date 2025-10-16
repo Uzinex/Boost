@@ -1,0 +1,44 @@
+.payments-highlight .card {
+  display: grid;
+  gap: 6px;
+}
+
+.payment-methods {
+  display: grid;
+  gap: 12px;
+}
+
+.payment-methods__item {
+  display: grid;
+  gap: 4px;
+  align-items: flex-start;
+  justify-items: flex-start;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border var(--transition-base), background var(--transition-base), transform var(--transition-base);
+}
+
+.payment-methods__item:hover,
+.payment-methods__item:focus-visible {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.payment-methods__title {
+  font-weight: 600;
+}
+
+.payment-methods__meta {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+#view-payments .list__actions {
+  display: flex;
+  gap: 8px;
+}

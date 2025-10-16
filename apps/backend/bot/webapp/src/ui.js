@@ -264,7 +264,7 @@ export function renderTaskHistory(history = []) {
   });
 }
 
-export function renderOrders(orders = []) {
+export function renderOrders(orders = [], { summary } = {}) {
   renderList({
     containerId: 'orders-list',
     emptyId: 'orders-empty',
@@ -283,12 +283,36 @@ export function renderOrders(orders = []) {
       if (typeof order.progress === 'number') parts.push(`${order.progress}%`);
       if (order.budget ?? order.amount) parts.push(`${order.budget ?? order.amount} UZT`);
       meta.textContent = parts.filter(Boolean).join(' • ');
+      const btn = node.querySelector('[data-action="open-order"]');
+      if (btn) {
+        btn.dataset.orderId = order.id ?? order.order_id ?? '';
+      }
       return node;
     },
   });
+
+  const aggregated =
+    summary ||
+    (Array.isArray(orders)
+      ? orders.reduce(
+        (acc, order) => {
+          const status = (order.status || '').toLowerCase();
+          if (status === 'active' || status === 'running') acc.active += 1;
+          if (status === 'completed' || status === 'done') acc.completed += 1;
+          if (typeof order.budget === 'number') acc.budget += order.budget;
+          else if (typeof order.amount === 'number') acc.budget += order.amount;
+          return acc;
+        },
+        { active: 0, completed: 0, budget: 0 }
+      )
+      : { active: 0, completed: 0, budget: 0 });
+
+  setText('orders-active', formatNumber(aggregated.active));
+  setText('orders-completed', formatNumber(aggregated.completed));
+  setText('orders-budget', formatCurrency(aggregated.budget));
 }
 
-export function renderPayments(payments = []) {
+export function renderPayments(payments = [], { balance, lastPayment } = {}) {
   renderList({
     containerId: 'payments-list',
     emptyId: 'payments-empty',
@@ -307,9 +331,41 @@ export function renderPayments(payments = []) {
       if (payment.status) parts.push(payment.status);
       if (payment.created_at) parts.push(formatDateTime(payment.created_at));
       meta.textContent = parts.filter(Boolean).join(' • ');
+      const btn = node.querySelector('[data-action="open-payment"]');
+      if (btn) {
+        btn.dataset.paymentId = payment.id ?? payment.invoice_id ?? '';
+      }
       return node;
     },
   });
+
+  const balanceEl = document.getElementById('payments-balance');
+  if (balanceEl) {
+    const normalized = toNumber(balance ?? balanceEl.dataset.value ?? 0, 0);
+    balanceEl.dataset.value = normalized;
+    balanceEl.textContent = formatCurrency(normalized);
+  }
+
+  const fallback =
+    lastPayment ||
+    (Array.isArray(payments)
+      ? payments
+          .slice()
+          .filter((item) => item?.created_at || item?.updated_at)
+          .sort((a, b) => new Date(b.created_at || b.updated_at) - new Date(a.created_at || a.updated_at))[0]
+      : null);
+  const lastEl = document.getElementById('payments-last');
+  if (lastEl) {
+    if (fallback) {
+      const amount = fallback.amount_uzt ?? fallback.amount ?? fallback.total ?? 0;
+      const date = formatDateTime(fallback.created_at || fallback.updated_at || fallback.date);
+      const parts = [formatCurrency(amount)];
+      if (date) parts.push(date);
+      lastEl.textContent = parts.join(' • ');
+    } else {
+      lastEl.textContent = '—';
+    }
+  }
 }
 
 export function renderProfileSummary(profile = {}, { balance, totalEarned } = {}) {
@@ -318,6 +374,32 @@ export function renderProfileSummary(profile = {}, { balance, totalEarned } = {}
   setText('profile-summary-balance', formatCurrency(balance ?? profile.balance ?? 0));
   setText('profile-summary-earned', formatCurrency(totalEarned ?? profile.total_earned_uzt ?? 0));
   setText('profile-summary-language', profile.language || profile.language_code || 'ru');
+
+  const avatar = document.querySelector('.profile-summary__avatar');
+  if (avatar) {
+    const initials =
+      (name || '')
+        .replace(/^@/, '')
+        .split(/[\s_]+/)
+        .filter(Boolean)
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || 'УБ';
+    avatar.textContent = initials;
+  }
+
+  const referralEl = document.getElementById('profile-referral-link');
+  if (referralEl) {
+    const code = profile.referral_code || profile.referralCode || '';
+    const link =
+      profile.referral_link ||
+      profile.referralLink ||
+      profile.referral_url ||
+      profile.referralUrl ||
+      (code ? `https://t.me/${profile.bot_username || 'uzinex_boost_bot'}?start=${code}` : 'https://t.me/uzinex_boost_bot');
+    referralEl.textContent = link;
+  }
 }
 
 export function populateProfileForm(profile = {}) {

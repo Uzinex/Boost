@@ -30,6 +30,10 @@ import {
   setLoading,
   toNumber,
 } from './ui.js';
+import { initTasksView } from './views/tasks.js';
+import { initOrdersView } from './views/orders.js';
+import { initPaymentsView } from './views/payments.js';
+import { initProfileView } from './views/profile.js';
 
 const tg = window.Telegram?.WebApp;
 
@@ -155,6 +159,7 @@ async function bootstrap() {
 
     await loadInitialData();
     bindEvents();
+    initViewControllers();
     switchView('dashboard');
 
     if (useMockAuth) {
@@ -230,6 +235,25 @@ function renderAll() {
   const referralsCount = Array.isArray(state.referrals) ? state.referrals.length : 0;
   const ordersCount = Array.isArray(state.orders) ? state.orders.length : 0;
   const balance = toNumber(state.balance ?? profile.balance ?? 0, 0);
+  const lastPayment = Array.isArray(state.payments)
+    ? state.payments
+        .slice()
+        .filter((payment) => payment?.created_at || payment?.updated_at)
+        .sort((a, b) => new Date(b.created_at || b.updated_at) - new Date(a.created_at || a.updated_at))[0]
+    : null;
+  const ordersSummary = Array.isArray(state.orders)
+    ? state.orders.reduce(
+        (acc, order) => {
+          const status = (order.status || '').toLowerCase();
+          if (status === 'active' || status === 'running') acc.active += 1;
+          if (status === 'completed' || status === 'done') acc.completed += 1;
+          if (typeof order.budget === 'number') acc.budget += order.budget;
+          else if (typeof order.amount === 'number') acc.budget += order.amount;
+          return acc;
+        },
+        { active: 0, completed: 0, budget: 0 }
+      )
+    : { active: 0, completed: 0, budget: 0 };
 
   renderDashboard({
     balance: balance,
@@ -242,8 +266,8 @@ function renderAll() {
 
   renderTasks(state.tasks || []);
   renderTaskHistory(state.taskHistory || []);
-  renderOrders(state.orders || []);
-  renderPayments(state.payments || []);
+  renderOrders(state.orders || [], { summary: ordersSummary });
+  renderPayments(state.payments || [], { balance, lastPayment });
   renderProfileSummary(profile, { balance, totalEarned });
   populateProfileForm(profile);
   renderReferrals(state.referrals || []);
@@ -301,6 +325,26 @@ function bindEvents() {
       }
     });
   });
+}
+
+function initViewControllers() {
+  const refresh = () => loadInitialData();
+  initTasksView({ onRefresh: refresh });
+  initOrdersView({ onRefresh: refresh });
+  initPaymentsView({ onRefresh: refresh });
+  initProfileView({ onRefresh: refresh, onUpdateProfile: handleProfileUpdate });
+}
+
+async function handleProfileUpdate({ username, language }) {
+  const payload = { username, language };
+  const response = await api.updateProfile(payload);
+  const updated = response?.user || response?.profile || response?.data || null;
+  if (updated) {
+    setProfile(updated);
+    setUser(updated);
+  }
+  showToast({ type: 'success', title: 'Профиль сохранён' });
+  await loadInitialData();
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);
