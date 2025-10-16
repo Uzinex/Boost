@@ -36,6 +36,7 @@ import { initPaymentsView } from './views/payments.js';
 import { initProfileView } from './views/profile.js';
 
 const tg = window.Telegram?.WebApp;
+const AVAILABLE_VIEWS = ['dashboard', 'tasks', 'orders', 'payments', 'profile'];
 
 function resolveInitData() {
   if (tg?.initData) {
@@ -94,6 +95,35 @@ function composeDisplayName(user) {
   return `ID ${user.telegram_id || user.id}`;
 }
 
+function normalizeViewId(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function resolveInitialView({ searchParams } = {}) {
+  const fromQuery = normalizeViewId(searchParams?.get?.('view'));
+  if (AVAILABLE_VIEWS.includes(fromQuery)) {
+    return fromQuery;
+  }
+
+  const fromBody = normalizeViewId(document.body?.dataset?.defaultView);
+  if (AVAILABLE_VIEWS.includes(fromBody)) {
+    return fromBody;
+  }
+
+  const pathMatch = window.location.pathname.match(/([a-z-]+)\.html$/i);
+  if (pathMatch) {
+    const candidate = normalizeViewId(pathMatch[1]);
+    if (candidate === 'index') {
+      return 'dashboard';
+    }
+    if (AVAILABLE_VIEWS.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  return 'dashboard';
+}
+
 function buildHistoryEvents() {
   const events = [];
   state.payments.forEach((payment) => {
@@ -128,6 +158,7 @@ async function bootstrap() {
     renderAll();
 
     const searchParams = new URLSearchParams(window.location.search);
+    const initialView = resolveInitialView({ searchParams });
     const config = getConfig();
     const initData = resolveInitData();
     const useMockAuth = !initData && shouldUseMockAuth(searchParams, config);
@@ -160,7 +191,7 @@ async function bootstrap() {
     await loadInitialData();
     bindEvents();
     initViewControllers();
-    switchView('dashboard');
+    switchView(initialView);
 
     if (useMockAuth) {
       showToast({
