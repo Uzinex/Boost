@@ -15,8 +15,124 @@ function bindOrderFilters() {
   });
 }
 
-export function initOrdersView({ onRefresh } = {}) {
+function setupOrderModal({ onCreateOrder } = {}) {
+  const modal = document.getElementById('order-create-modal');
+  const form = document.getElementById('order-create-form');
+  const submitBtn = document.getElementById('order-create-submit');
+  const createBtn = document.getElementById('orders-create');
+  if (!modal || !form || !createBtn) {
+    return;
+  }
+
+  let keydownHandler = null;
+
+  const closeModal = () => {
+    modal.hidden = true;
+    document.body.classList.remove('is-modal-open');
+    if (keydownHandler) {
+      document.removeEventListener('keydown', keydownHandler);
+      keydownHandler = null;
+    }
+  };
+
+  const openModal = () => {
+    modal.hidden = false;
+    document.body.classList.add('is-modal-open');
+    form.reset();
+    const firstField = form.querySelector('input, select, textarea');
+    if (firstField) firstField.focus();
+    if (!keydownHandler) {
+      keydownHandler = (event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeModal();
+        }
+      };
+      document.addEventListener('keydown', keydownHandler);
+    }
+  };
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+
+  const closeButtons = Array.from(modal.querySelectorAll('[data-modal-close]'));
+  closeButtons.forEach((button) => {
+    button.addEventListener('click', () => closeModal());
+  });
+
+  createBtn.addEventListener('click', () => {
+    openModal();
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (typeof onCreateOrder !== 'function') {
+      showToast({
+        type: 'warning',
+        title: 'Создание недоступно',
+        message: 'Попробуйте обновить страницу или обратитесь в поддержку.',
+      });
+      return;
+    }
+
+    const formData = new FormData(form);
+    const orderType = String(formData.get('order_type') || '').trim();
+    const targetUrlRaw = String(formData.get('target_url') || '').trim();
+    const quantityValue = Number(formData.get('quantity'));
+    const quantity = Number.isFinite(quantityValue) ? Math.round(quantityValue) : NaN;
+
+    if (!orderType) {
+      showToast({ type: 'warning', title: 'Укажите тип заказа' });
+      return;
+    }
+
+    let normalizedUrl = '';
+    try {
+      const parsed = new URL(targetUrlRaw);
+      normalizedUrl = parsed.toString();
+    } catch (error) {
+      console.warn('[Boost] invalid order target url', error);
+      showToast({
+        type: 'warning',
+        title: 'Некорректная ссылка',
+        message: 'Введите полноценную ссылку, начиная с https://',
+      });
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || quantity < 10 || quantity > 10000) {
+      showToast({
+        type: 'warning',
+        title: 'Некорректное количество',
+        message: 'Допустимый диапазон — от 10 до 10000.',
+      });
+      return;
+    }
+
+    setLoading(submitBtn, true);
+    try {
+      await onCreateOrder({ orderType, targetUrl: normalizedUrl, quantity });
+      form.reset();
+      closeModal();
+    } catch (error) {
+      console.error('[Boost] order create failed', error);
+      showToast({
+        type: 'error',
+        title: 'Не удалось создать заказ',
+        message: error.message || 'Попробуйте ещё раз позже.',
+      });
+    } finally {
+      setLoading(submitBtn, false);
+    }
+  });
+}
+
+export function initOrdersView({ onRefresh, onCreateOrder } = {}) {
   bindOrderFilters();
+  setupOrderModal({ onCreateOrder });
 
   const refreshBtn = document.getElementById('orders-refresh');
   if (refreshBtn && typeof onRefresh === 'function') {
@@ -35,17 +151,6 @@ export function initOrdersView({ onRefresh } = {}) {
       } finally {
         setLoading(refreshBtn, false);
       }
-    });
-  }
-
-  const createBtn = document.getElementById('orders-create');
-  if (createBtn) {
-    createBtn.addEventListener('click', () => {
-      showToast({
-        type: 'info',
-        title: 'Создание заказа',
-        message: 'Функция будет доступна после подключения бэкенда.',
-      });
     });
   }
 

@@ -210,6 +210,77 @@
           </div>
         </section>
 
+        <div
+          class="modal"
+          id="order-create-modal"
+          hidden
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-create-title"
+        >
+          <div class="modal__dialog">
+            <header class="modal__header">
+              <div>
+                <h3 class="modal__title" id="order-create-title">Новый заказ</h3>
+                <p class="muted">Заполните параметры кампании и запустите продвижение.</p>
+              </div>
+              <button class="btn btn--ghost btn--icon" type="button" data-modal-close aria-label="Закрыть">
+                ×
+              </button>
+            </header>
+
+            <form class="form" id="order-create-form">
+              <div class="form__field">
+                <label for="order-type">Тип заказа</label>
+                <input
+                  id="order-type"
+                  name="order_type"
+                  type="text"
+                  placeholder="channel или group"
+                  list="order-type-suggestions"
+                  required
+                />
+                <datalist id="order-type-suggestions">
+                  <option value="channel"></option>
+                  <option value="group"></option>
+                </datalist>
+                <p class="form__hint">Используйте значения <code>channel</code> для каналов или <code>group</code> для групп.</p>
+              </div>
+
+              <div class="form__field">
+                <label for="order-target-url">Ссылка для продвижения</label>
+                <input
+                  id="order-target-url"
+                  name="target_url"
+                  type="url"
+                  placeholder="https://t.me/uzinex_boost"
+                  required
+                />
+              </div>
+
+              <div class="form__field">
+                <label for="order-quantity">Количество участников</label>
+                <input
+                  id="order-quantity"
+                  name="quantity"
+                  type="number"
+                  min="10"
+                  max="10000"
+                  step="1"
+                  placeholder="Например, 1000"
+                  required
+                />
+                <p class="form__hint">Допустимый диапазон — от 10 до 10000 действий.</p>
+              </div>
+
+              <div class="modal__footer">
+                <button class="btn btn--ghost" type="button" data-modal-close>Отмена</button>
+                <button class="btn btn--primary" type="submit" id="order-create-submit">Создать заказ</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
         <section class="view" id="view-payments" data-view="payments" hidden>
           <header class="section-header">
             <div>
