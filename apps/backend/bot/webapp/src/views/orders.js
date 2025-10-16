@@ -26,9 +26,16 @@ function setupOrderModal({ onCreateOrder } = {}) {
 
   let keydownHandler = null;
 
+  const setModalVisibility = (isVisible) => {
+    modal.toggleAttribute('hidden', !isVisible);
+    modal.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+    document.body.classList.toggle('is-modal-open', isVisible);
+  };
+
+  setModalVisibility(!modal.hidden);
+
   const closeModal = () => {
-    modal.hidden = true;
-    document.body.classList.remove('is-modal-open');
+    setModalVisibility(false);
     if (keydownHandler) {
       document.removeEventListener('keydown', keydownHandler);
       keydownHandler = null;
@@ -36,8 +43,7 @@ function setupOrderModal({ onCreateOrder } = {}) {
   };
 
   const openModal = () => {
-    modal.hidden = false;
-    document.body.classList.add('is-modal-open');
+    setModalVisibility(true);
     form.reset();
     const firstField = form.querySelector('input, select, textarea');
     if (firstField) firstField.focus();
@@ -63,7 +69,8 @@ function setupOrderModal({ onCreateOrder } = {}) {
     button.addEventListener('click', () => closeModal());
   });
 
-  createBtn.addEventListener('click', () => {
+  createBtn.addEventListener('click', (event) => {
+    event.preventDefault();
     openModal();
   });
 
