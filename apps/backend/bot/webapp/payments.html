@@ -11,7 +11,7 @@
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <title>Uzinex Boost WebApp</title>
+    <title>Uzinex Boost · Пополнения</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -62,7 +62,7 @@
     </script>
   </head>
 
-  <body data-default-view="dashboard">
+  <body data-default-view="payments">
     <div class="app-shell">
       <header class="app-header">
         <div>
@@ -76,15 +76,15 @@
       </header>
 
       <nav class="app-nav" aria-label="Основная навигация">
-        <a class="nav-btn is-active" data-view="dashboard" href="./index.html">Главная</a>
+        <a class="nav-btn" data-view="dashboard" href="./index.html">Главная</a>
         <a class="nav-btn" data-view="tasks" href="./tasks.html">Задания</a>
         <a class="nav-btn" data-view="orders" href="./orders.html">Заказы</a>
-        <a class="nav-btn" data-view="payments" href="./payments.html">Пополнения</a>
+        <a class="nav-btn is-active" data-view="payments" href="./payments.html">Пополнения</a>
         <a class="nav-btn" data-view="profile" href="./profile.html">Профиль</a>
       </nav>
 
       <main class="app-main">
-        <section class="view" id="view-dashboard" data-view="dashboard">
+        <section class="view" id="view-dashboard" data-view="dashboard" hidden>
           <div class="grid grid--cards" id="dashboard-cards">
             <article class="card">
               <h2>Баланс</h2>
@@ -218,7 +218,7 @@
           </div>
         </section>
 
-        <section class="view" id="view-payments" data-view="payments" hidden>
+        <section class="view" id="view-payments" data-view="payments">
           <header class="section-header">
             <div>
               <h2>Пополнения</h2>
